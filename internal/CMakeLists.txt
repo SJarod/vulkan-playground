@@ -1,0 +1,1 @@
+set(component internal)
