@@ -1,7 +1,11 @@
 #include <iostream>
 
+#include "client/application.hpp"
+
 int main()
 {
-    std::cout << "fjdksl" << std::endl;
+    Application app;
+    app.run();
+    
     return 0;
 }
