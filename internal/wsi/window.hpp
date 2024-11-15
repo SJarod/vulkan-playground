@@ -18,7 +18,7 @@ public:
     WindowGLFW();
 
     void makeContextCurrent();
-    bool windowShouldClose();
+    bool shouldClose();
     void swapBuffers();
     void pollEvents();
 };

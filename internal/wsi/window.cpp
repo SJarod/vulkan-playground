@@ -22,7 +22,7 @@ void WindowGLFW::makeContextCurrent()
     glfwMakeContextCurrent(m_handle);
 }
 
-bool WindowGLFW::windowShouldClose()
+bool WindowGLFW::shouldClose()
 {
     return glfwWindowShouldClose(m_handle);
 }

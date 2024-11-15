@@ -12,7 +12,7 @@ void Application::run()
     m_window = std::make_unique<WindowGLFW>();
 
     m_window->makeContextCurrent();
-    while (!m_window->windowShouldClose())
+    while (!m_window->shouldClose())
     {
         m_window->swapBuffers();
         m_window->pollEvents();
