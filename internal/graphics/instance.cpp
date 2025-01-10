@@ -1,5 +1,5 @@
-#include <iostream>
 #include "context.hpp"
+#include <iostream>
 
 #include "instance.hpp"
 
@@ -22,6 +22,15 @@ Instance::Instance(const Context &cx)
         .ppEnabledExtensionNames = cx.getInstanceExtensions(),
     };
 
+    uint32_t count;
+    vkEnumerateInstanceLayerProperties(&count, nullptr);
+    std::vector<VkLayerProperties> props(count);
+    vkEnumerateInstanceLayerProperties(&count, props.data());
+    for (int i = 0; i < count; ++i)
+    {
+        std::cout << props[i].layerName << std::endl;
+    }
+
     VkInstance handle;
     if (vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
     {
@@ -35,5 +44,5 @@ Instance::Instance(const Context &cx)
 Instance::~Instance()
 {
     if (m_handle)
-    vkDestroyInstance(*m_handle, nullptr);
+        vkDestroyInstance(*m_handle, nullptr);
 }

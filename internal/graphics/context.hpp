@@ -22,7 +22,7 @@ class Context
     std::unique_ptr<Instance> m_instance;
 
   public:
-    Context();
+    void finishCreateContext();
 
     inline int getLayerCount() const
     {
@@ -49,6 +49,14 @@ class Context
         return m_deviceExtensions.data();
     }
 
-    std::vector<VkPhysicalDevice> getAvvailablePhysicalDevices() const;
+    void addLayer(const char *layer);
+    void addInstanceExtension(const char *extension);
+    void addDeviceExtension(const char *extension);
 
+    inline VkInstance getInstanceHandle() const
+    {
+        return m_instance->getHandle();
+    }
+
+    std::vector<VkPhysicalDevice> getAvvailablePhysicalDevices() const;
 };

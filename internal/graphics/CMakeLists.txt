@@ -14,7 +14,10 @@ target_sources(${component}
     device.cpp
 
     surface.hpp
+    surface.cpp
+
     swapchain.hpp
+    swapchain.cpp
 )
 
 target_link_libraries(${component}

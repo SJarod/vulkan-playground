@@ -16,5 +16,5 @@ public:
     ~Instance();
 
 public:
-    inline VkInstance getInstance() const { return *m_handle; }
+    inline VkInstance getHandle() const { return *m_handle; }
 };

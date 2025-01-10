@@ -1,12 +1,19 @@
 #pragma once
 
 #include <optional>
+#include <memory>
 #include <vector>
 
 #include <volk.h>
 
+#include "surface.hpp"
+#include "swapchain.hpp"
+
 class Context;
 class Surface;
+class SwapChain;
+
+typedef VkResult (*PFN_CreateSurfacePredicate)(VkInstance, const void *, VkAllocationCallbacks *, VkSurfaceKHR *);
 
 class Device
 {
@@ -34,4 +41,7 @@ class Device
     std::optional<uint32_t> findPresentQueueFamilyIndex(const Surface *surface) const;
 
     void initLogicalDevice();
+
+    std::unique_ptr<Surface> createSurface(PFN_CreateSurfacePredicate predicate, const void *windowHandle);
+    std::unique_ptr<SwapChain> createSwapChain(const Surface &surface);
 };
