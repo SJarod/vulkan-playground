@@ -22,7 +22,7 @@ Instance::Instance(const Context& cx)
     };
 
     VkInstance handle;
-    if (cx.vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
+    if (vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
         throw;
 
     m_handle = std::make_unique<VkInstance>(handle);

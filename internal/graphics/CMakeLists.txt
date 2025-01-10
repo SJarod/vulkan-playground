@@ -15,8 +15,7 @@ target_sources(${component}
 )
 
 target_link_libraries(${component}
-    PUBLIC Vulkan-Headers
-    PUBLIC FuUtilities
+    PUBLIC volk
 )
 
 target_include_directories(${component} PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

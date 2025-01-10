@@ -2,10 +2,11 @@
 
 Context::Context()
 {
-    m_loader = std::make_unique<Utils::bin::DynamicLibraryLoader>("vulkan-1");
-    vkCreateInstance = (PFN_vkCreateInstance)m_loader->getProcAddr("vkCreateInstance");
+    volkInitialize();
 
     m_instance = std::make_unique<Instance>(*this);
+
+    volkLoadInstance(m_instance->getInstance());
 }
 
 int Context::enumerateAvailablePhysicalDevice() const

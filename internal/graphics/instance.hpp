@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 class Context;
 
@@ -13,4 +13,7 @@ private:
 
 public:
     Instance(const Context& cx);
+
+    public:
+    inline VkInstance getInstance() const { return *m_handle; }
 };
