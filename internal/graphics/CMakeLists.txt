@@ -10,6 +10,9 @@ target_sources(${component}
     instance.hpp
     instance.cpp
 
+    device.hpp
+    device.cpp
+
     surface.hpp
     swapchain.hpp
 )

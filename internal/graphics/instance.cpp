@@ -1,8 +1,9 @@
+#include <iostream>
 #include "context.hpp"
 
 #include "instance.hpp"
 
-Instance::Instance(const Context& cx)
+Instance::Instance(const Context &cx)
 {
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -23,7 +24,16 @@ Instance::Instance(const Context& cx)
 
     VkInstance handle;
     if (vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
-        throw;
+    {
+        std::cerr << "Failed to create instance" << std::endl;
+        return;
+    }
 
     m_handle = std::make_unique<VkInstance>(handle);
+}
+
+Instance::~Instance()
+{
+    if (m_handle)
+    vkDestroyInstance(*m_handle, nullptr);
 }

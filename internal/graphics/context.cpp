@@ -1,3 +1,7 @@
+#include <iostream>
+#include <set>
+#include "device.hpp"
+
 #include "context.hpp"
 
 Context::Context()
@@ -9,7 +13,11 @@ Context::Context()
     volkLoadInstance(m_instance->getInstance());
 }
 
-int Context::enumerateAvailablePhysicalDevice() const
+std::vector<VkPhysicalDevice> Context::getAvvailablePhysicalDevices() const
 {
-    return 0;
+    uint32_t count;
+    vkEnumeratePhysicalDevices(m_instance->getInstance(), &count, nullptr);
+    std::vector<VkPhysicalDevice> physicalDevices(count);
+    vkEnumeratePhysicalDevices(m_instance->getInstance(), &count, physicalDevices.data());
+    return physicalDevices;
 }

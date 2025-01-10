@@ -12,8 +12,9 @@ private:
     std::unique_ptr<VkInstance> m_handle;
 
 public:
-    Instance(const Context& cx);
+    Instance(const Context &cx);
+    ~Instance();
 
-    public:
+public:
     inline VkInstance getInstance() const { return *m_handle; }
 };
