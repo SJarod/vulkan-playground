@@ -7,3 +7,8 @@ Context::Context()
 
     m_instance = std::make_unique<Instance>(*this);
 }
+
+int Context::enumerateAvailablePhysicalDevice() const
+{
+    return 0;
+}

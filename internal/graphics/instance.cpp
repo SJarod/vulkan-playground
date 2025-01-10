@@ -6,7 +6,7 @@ Instance::Instance(const Context& cx)
 {
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "advanced_vulkan_test",
+        .pApplicationName = "rhi_sandbox",
         .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
         .pEngineName = "engine",
         .engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),

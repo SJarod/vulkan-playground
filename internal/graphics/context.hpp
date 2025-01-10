@@ -9,6 +9,8 @@
 
 #include "instance.hpp"
 
+#define PFN_DECLARE_VK(funcName) PFN_##funcName funcName
+
 class Context
 {
 private:
@@ -32,6 +34,13 @@ public:
     inline const char* const* getInstanceExtensions() const
     { return m_instanceExtensions.data(); }
 
+    /**
+     * return the number of physical devices
+    */
+    int enumerateAvailablePhysicalDevice() const;
+
 public:
-    PFN_vkCreateInstance vkCreateInstance;
+    PFN_DECLARE_VK(vkCreateInstance);
+    PFN_DECLARE_VK(vkDestroyInstance);
+    PFN_DECLARE_VK(vkGetInstanceProcAddr);
 };

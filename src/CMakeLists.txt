@@ -1,4 +1,4 @@
-set(component advanced_vulkan_test)
+set(component rhi_sandbox)
 
 add_executable(${component})
 

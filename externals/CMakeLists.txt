@@ -1,4 +1,5 @@
 add_subdirectory(glfw)
 add_subdirectory(Vulkan-Headers)
-set(BUILD_AI_UTILS OFF)
+set(UTILITIES_BUILD_AI_UTILS OFF)
+set(UTILITIES_BUILD_TESTS OFF)
 add_subdirectory(utilities)
