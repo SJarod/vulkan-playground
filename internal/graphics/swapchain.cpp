@@ -1,8 +1,8 @@
-#include "swapchain.cpp"
+#include "swapchain.hpp"
 
 #include "device.hpp"
 
 SwapChain::~SwapChain()
 {
-    vkDestroySwapchainKHR(device.handle, handle, nullptr);
+    vkDestroySwapchainKHR(*device.handle, handle, nullptr);
 }
