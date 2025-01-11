@@ -1,14 +1,15 @@
-#include "wsi/window.hpp"
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
+#include "wsi/window.hpp"
 
 #include "application.hpp"
-
 
 Application::Application()
 {
     m_context = std::make_shared<Context>();
     // m_context->addLayer("VK_LAYER_KHRONOS_validation");
+    m_context->addInstanceExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    m_context->addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     m_context->addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     m_context->finishCreateContext();
 

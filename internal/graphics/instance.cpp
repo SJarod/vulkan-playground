@@ -13,8 +13,17 @@ Instance::Instance(const Context &cx)
         .engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
         .apiVersion = VK_API_VERSION_1_3,
     };
+
+    VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+        .flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
+                 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
+                 VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+        .pfnCallback = &Instance::debugReportCallback,
+    };
     VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = &debugReportCreateInfo,
         .pApplicationInfo = &appInfo,
         .enabledLayerCount = static_cast<uint32_t>(cx.getLayerCount()),
         .ppEnabledLayerNames = cx.getLayers(),
