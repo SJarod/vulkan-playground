@@ -17,6 +17,7 @@ void WindowGLFW::terminate()
 
 WindowGLFW::WindowGLFW()
 {
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     m_handle = glfwCreateWindow(width, height, "test", NULL, NULL);
     if (!m_handle)
         throw;
@@ -58,8 +59,8 @@ const std::vector<const char *> WindowGLFW::getRequiredExtensions() const
     return std::vector<const char *>(extensions, extensions + count);
 }
 
-VkResult WindowGLFW::createSurfacePredicate(VkInstance instance, const void *windowHandle,
-                                            VkAllocationCallbacks *allocator, VkSurfaceKHR *surface)
+VkResult WindowGLFW::createSurfacePredicate(VkInstance instance, void *windowHandle, VkAllocationCallbacks *allocator,
+                                            VkSurfaceKHR *surface)
 {
     VkResult res = glfwCreateWindowSurface(instance, (GLFWwindow *)windowHandle, allocator, surface);
     return res;

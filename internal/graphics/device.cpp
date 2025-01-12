@@ -59,7 +59,7 @@ void Device::initLogicalDevice()
         this->handle = std::make_unique<VkDevice>(handle);
 }
 
-std::unique_ptr<Surface> Device::createSurface(PFN_CreateSurfacePredicate predicate, const void *windowHandle)
+std::unique_ptr<Surface> Device::createSurface(PFN_CreateSurfacePredicate predicate, void *windowHandle)
 {
     VkSurfaceKHR surface;
     VkResult result = predicate(cx.getInstanceHandle(), windowHandle, nullptr, &surface);

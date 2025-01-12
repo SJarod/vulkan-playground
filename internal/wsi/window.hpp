@@ -6,7 +6,6 @@
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-
 class Surface;
 class SwapChain;
 
@@ -40,13 +39,13 @@ class WindowGLFW : public WindowI
     void swapBuffers();
     void pollEvents();
 
-    const std::vector<const char*> getRequiredExtensions() const;
+    const std::vector<const char *> getRequiredExtensions() const;
 
     inline GLFWwindow *getHandle() const
     {
         return m_handle;
     }
 
-    static VkResult createSurfacePredicate(VkInstance instance, const void *windowHandle, VkAllocationCallbacks *allocator,
-                                    VkSurfaceKHR *surface);
+    static VkResult createSurfacePredicate(VkInstance instance, void *windowHandle, VkAllocationCallbacks *allocator,
+                                           VkSurfaceKHR *surface);
 };

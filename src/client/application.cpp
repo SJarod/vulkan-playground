@@ -30,17 +30,14 @@ Application::Application()
         devices.emplace_back(std::make_shared<Device>(*m_context, physicalDevice));
         (*(devices.end() - 1))->initLogicalDevice();
     }
-
-    std::shared_ptr<Device> mainDevice = devices[0];
-
-    m_window->surface = mainDevice->createSurface(&WindowGLFW::createSurfacePredicate, m_window->getHandle());
 }
 
 Application::~Application()
 {
     devices.clear();
-    m_context.reset();
     m_window.reset();
+    
+    m_context.reset();
 
     WindowGLFW::terminate();
 }
@@ -48,6 +45,11 @@ Application::~Application()
 void Application::run()
 {
     m_window->makeContextCurrent();
+
+    std::shared_ptr<Device> mainDevice = devices[0];
+
+    m_window->surface = mainDevice->createSurface(&WindowGLFW::createSurfacePredicate, m_window->getHandle());
+
     while (!m_window->shouldClose())
     {
         m_window->swapBuffers();
