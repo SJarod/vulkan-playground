@@ -48,8 +48,19 @@ void WindowGLFW::pollEvents()
     glfwPollEvents();
 }
 
+const std::vector<const char *> WindowGLFW::getRequiredExtensions() const
+{
+    uint32_t count = 0;
+    const char **extensions;
+
+    extensions = glfwGetRequiredInstanceExtensions(&count);
+
+    return std::vector<const char *>(extensions, extensions + count);
+}
+
 VkResult WindowGLFW::createSurfacePredicate(VkInstance instance, const void *windowHandle,
                                             VkAllocationCallbacks *allocator, VkSurfaceKHR *surface)
 {
-    return glfwCreateWindowSurface(instance, (GLFWwindow *)windowHandle, allocator, surface);
+    VkResult res = glfwCreateWindowSurface(instance, (GLFWwindow *)windowHandle, allocator, surface);
+    return res;
 }

@@ -62,9 +62,10 @@ void Device::initLogicalDevice()
 std::unique_ptr<Surface> Device::createSurface(PFN_CreateSurfacePredicate predicate, const void *windowHandle)
 {
     VkSurfaceKHR surface;
-    if (predicate(cx.getInstanceHandle(), windowHandle, nullptr, &surface) != VK_SUCCESS)
+    VkResult result = predicate(cx.getInstanceHandle(), windowHandle, nullptr, &surface);
+    if (result != VK_SUCCESS)
     {
-        std::cerr << "Failed to create window surface" << std::endl;
+        std::cerr << "Failed to create window surface : " << result << std::endl;
         return nullptr;
     }
 

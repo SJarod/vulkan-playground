@@ -12,6 +12,7 @@ class Instance
   private:
     std::unique_ptr<VkInstance> m_handle;
 
+#if 0
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallback(VkDebugReportFlagsEXT flags,
                                                               VkDebugReportObjectTypeEXT objectType, uint64_t object,
                                                               size_t location, int32_t messageCode,
@@ -23,6 +24,7 @@ class Instance
 
         return VK_FALSE;
     }
+#endif
 
   public:
     Instance(const Context &cx);

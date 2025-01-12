@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -38,6 +39,8 @@ class WindowGLFW : public WindowI
 
     void swapBuffers();
     void pollEvents();
+
+    const std::vector<const char*> getRequiredExtensions() const;
 
     inline GLFWwindow *getHandle() const
     {
