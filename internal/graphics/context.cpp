@@ -6,11 +6,7 @@
 
 void Context::finishCreateContext()
 {
-    volkInitialize();
-
     m_instance = std::make_unique<Instance>(*this);
-
-    volkLoadInstance(m_instance->getHandle());
 }
 
 void Context::addLayer(const char *layer)

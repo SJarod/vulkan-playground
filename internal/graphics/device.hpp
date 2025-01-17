@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <volk.h>
+#include <vulkan/vulkan.h>
 
 #include "surface.hpp"
 #include "swapchain.hpp"
