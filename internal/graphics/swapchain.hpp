@@ -16,8 +16,6 @@ class SwapChain
     VkExtent2D extent;
 
   public:
-    SwapChain(const Device &device, VkSwapchainKHR handle) : device(device), handle(handle)
-    {
-    }
+    SwapChain(const Device &device);
     ~SwapChain();
 };

@@ -31,13 +31,17 @@ Application::Application()
         devices.emplace_back(std::make_shared<Device>(*m_context, physicalDevice, m_window->surface.get()));
         (*(devices.end() - 1))->initLogicalDevice();
     }
+
+    std::shared_ptr<Device> mainDevice = devices[0];
+
+    m_window->swapchain = std::make_unique<SwapChain>(*mainDevice);
 }
 
 Application::~Application()
 {
-    devices.clear();
     m_window.reset();
 
+    devices.clear();
     m_context.reset();
 
     WindowGLFW::terminate();

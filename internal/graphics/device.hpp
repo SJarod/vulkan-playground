@@ -18,6 +18,9 @@ class Device
   private:
     const Context &cx;
 
+public:
+    const Surface* surface = nullptr;
+
   public:
     // physical device
     VkPhysicalDevice physicalHandle;
@@ -28,6 +31,7 @@ class Device
     std::optional<uint32_t> graphicsFamilyIndex;
     std::optional<uint32_t> presentFamilyIndex;
 
+
   public:
     Device() = delete;
     Device(const Context &cx, VkPhysicalDevice base, const Surface *surface = nullptr);
@@ -36,9 +40,7 @@ class Device
     std::vector<VkQueueFamilyProperties> getQueueFamilyProperties() const;
 
     std::optional<uint32_t> findQueueFamilyIndex(const VkQueueFlags &capabilities) const;
-    std::optional<uint32_t> findPresentQueueFamilyIndex(const Surface *surface) const;
+    std::optional<uint32_t> findPresentQueueFamilyIndex() const;
 
     void initLogicalDevice();
-
-    std::unique_ptr<SwapChain> createSwapChain(const Surface &surface);
 };

@@ -8,12 +8,12 @@
 
 #include "device.hpp"
 
-Device::Device(const Context &cx, VkPhysicalDevice base, const Surface *surface) : cx(cx)
+Device::Device(const Context &cx, VkPhysicalDevice base, const Surface *surface) : cx(cx), surface(surface)
 {
     physicalHandle = base;
     graphicsFamilyIndex = findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-    if (surface)
-        presentFamilyIndex = findPresentQueueFamilyIndex(surface);
+    if (this->surface)
+        presentFamilyIndex = findPresentQueueFamilyIndex();
 }
 
 Device::~Device()
@@ -59,70 +59,6 @@ void Device::initLogicalDevice()
         this->handle = std::make_unique<VkDevice>(handle);
 }
 
-
-std::unique_ptr<SwapChain> Device::createSwapChain(const Surface &surface)
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalHandle, surface.getHandle(), &capabilities);
-
-    uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalHandle, surface.getHandle(), &formatCount, nullptr);
-    std::vector<VkSurfaceFormatKHR> formats(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalHandle, surface.getHandle(), &formatCount, formats.data());
-
-    uint32_t modeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalHandle, surface.getHandle(), &modeCount, nullptr);
-    std::vector<VkPresentModeKHR> presentModes(modeCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalHandle, surface.getHandle(), &modeCount, presentModes.data());
-
-    VkSurfaceFormatKHR surfaceFormat = formats[0];
-    VkPresentModeKHR presentMode = presentModes[0];
-    VkExtent2D extent = {1366, 768};
-
-    uint32_t imageCount = capabilities.minImageCount + 1;
-    if (capabilities.maxImageCount > 0 && capabilities.maxImageCount < imageCount)
-        imageCount = capabilities.maxImageCount;
-
-    VkSwapchainCreateInfoKHR createInfo = {.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                           .surface = surface.getHandle(),
-                                           .minImageCount = imageCount,
-                                           .imageFormat = surfaceFormat.format,
-                                           .imageColorSpace = surfaceFormat.colorSpace,
-                                           .imageExtent = extent,
-                                           .imageArrayLayers = 1,
-                                           .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                           .preTransform = capabilities.currentTransform,
-                                           .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                                           .presentMode = presentMode,
-                                           .clipped = VK_TRUE,
-                                           .oldSwapchain = VK_NULL_HANDLE};
-
-    uint32_t queueFamilyIndices[] = {graphicsFamilyIndex.value(), presentFamilyIndex.value()};
-
-    if (graphicsFamilyIndex != presentFamilyIndex)
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    }
-    else
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = nullptr;
-    }
-
-    VkSwapchainKHR swapchain;
-    if (vkCreateSwapchainKHR(*handle, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
-        throw std::exception("Failed to create swapchain");
-
-    std::unique_ptr<SwapChain> out = std::make_unique<SwapChain>(*this, swapchain);
-    out->imageFormat = surfaceFormat.format;
-    out->extent = extent;
-
-    return std::move(out);
-}
-
 std::vector<VkQueueFamilyProperties> Device::getQueueFamilyProperties() const
 {
     uint32_t queueFamilyPropertiesCount;
@@ -142,7 +78,7 @@ std::optional<uint32_t> Device::findQueueFamilyIndex(const VkQueueFlags &capabil
     }
     return std::optional<uint32_t>();
 }
-std::optional<uint32_t> Device::findPresentQueueFamilyIndex(const Surface *surface) const
+std::optional<uint32_t> Device::findPresentQueueFamilyIndex() const
 {
     if (!surface)
         return std::optional<uint32_t>();
