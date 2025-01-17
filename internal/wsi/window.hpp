@@ -6,8 +6,8 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
-class Surface;
-class SwapChain;
+#include "graphics/surface.hpp"
+#include "graphics/swapchain.hpp"
 
 class WindowI
 {

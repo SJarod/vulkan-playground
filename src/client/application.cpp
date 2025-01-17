@@ -1,5 +1,6 @@
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
+#include "renderer/renderer.hpp"
 #include "wsi/window.hpp"
 
 #include "application.hpp"
@@ -28,20 +29,24 @@ Application::Application()
     auto physicalDevices = m_context->getAvvailablePhysicalDevices();
     for (auto physicalDevice : physicalDevices)
     {
-        devices.emplace_back(std::make_shared<Device>(*m_context, physicalDevice, m_window->surface.get()));
-        (*(devices.end() - 1))->initLogicalDevice();
+        m_devices.emplace_back(std::make_shared<Device>(*m_context, physicalDevice, m_window->surface.get()));
+        (*(m_devices.end() - 1))->initLogicalDevice();
     }
 
-    std::shared_ptr<Device> mainDevice = devices[0];
+    std::shared_ptr<Device> mainDevice = m_devices[0];
 
     m_window->swapchain = std::make_unique<SwapChain>(*mainDevice);
+
+    m_renderer = std::make_shared<Renderer>(*mainDevice, *m_window->swapchain);
 }
 
 Application::~Application()
 {
+    m_renderer.reset();
+
     m_window.reset();
 
-    devices.clear();
+    m_devices.clear();
     m_context.reset();
 
     WindowGLFW::terminate();
@@ -51,7 +56,7 @@ void Application::run()
 {
     m_window->makeContextCurrent();
 
-    std::shared_ptr<Device> mainDevice = devices[0];
+    std::shared_ptr<Device> mainDevice = m_devices[0];
 
     while (!m_window->shouldClose())
     {

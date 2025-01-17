@@ -7,11 +7,8 @@
 #include <vulkan/vulkan.h>
 
 #include "surface.hpp"
-#include "swapchain.hpp"
 
 class Context;
-class Surface;
-class SwapChain;
 
 class Device
 {

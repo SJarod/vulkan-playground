@@ -18,6 +18,9 @@ target_sources(${component}
 
     swapchain.hpp
     swapchain.cpp
+
+    renderpass.hpp
+    renderpass.cpp
 )
 
 target_link_libraries(${component}

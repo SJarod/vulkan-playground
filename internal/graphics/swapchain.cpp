@@ -64,9 +64,43 @@ SwapChain::SwapChain(const Device &device) : device(device)
 
     this->imageFormat = surfaceFormat.format;
     this->extent = extent;
+
+    // swapchain images
+    vkGetSwapchainImagesKHR(*device.handle, handle, &imageCount, nullptr);
+    images.resize(imageCount);
+    vkGetSwapchainImagesKHR(*device.handle, handle, &imageCount, images.data());
+
+    // image views
+
+    imageViews.resize(imageCount);
+
+    for (size_t i = 0; i < imageCount; ++i)
+    {
+        VkImageViewCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                                            .image = images[i],
+                                            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                                            .format = imageFormat,
+                                            .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                                           .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                                           .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                                                           .a = VK_COMPONENT_SWIZZLE_IDENTITY},
+                                            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                                 .baseMipLevel = 0,
+                                                                 .levelCount = 1,
+                                                                 .baseArrayLayer = 0,
+                                                                 .layerCount = 1}};
+
+        VkResult res = vkCreateImageView(*device.handle, &createInfo, nullptr, &imageViews[i]);
+        if (res != VK_SUCCESS)
+            std::cerr << "Failed to create an image view : " << res << std::endl;
+    }
 }
 
 SwapChain::~SwapChain()
 {
+    for (VkImageView &imageView : imageViews)
+    {
+        vkDestroyImageView(*device.handle, imageView, nullptr);
+    }
     vkDestroySwapchainKHR(*device.handle, handle, nullptr);
 }

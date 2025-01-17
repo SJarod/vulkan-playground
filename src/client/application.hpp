@@ -6,16 +6,19 @@
 class WindowGLFW;
 class Context;
 class Device;
+class Renderer;
 
 class Application
 {
-private:
+  private:
     std::unique_ptr<WindowGLFW> m_window;
 
     std::shared_ptr<Context> m_context;
-    std::vector<std::shared_ptr<Device>> devices;
+    std::vector<std::shared_ptr<Device>> m_devices;
 
-public:
+    std::shared_ptr<Renderer> m_renderer;
+
+  public:
     Application();
     ~Application();
 
