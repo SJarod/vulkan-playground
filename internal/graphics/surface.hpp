@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan.h>
 
+
+typedef VkResult (*PFN_CreateSurfacePredicate)(VkInstance, void *, VkAllocationCallbacks *, VkSurfaceKHR *);
+
 class Context;
 
 class Surface
@@ -13,9 +16,7 @@ class Surface
     VkSurfaceKHR handle;
 
   public:
-    Surface(const Context &cx, VkSurfaceKHR handle) : cx(cx), handle(handle)
-    {
-    }
+    Surface(const Context &cx, PFN_CreateSurfacePredicate predicate, void* windowHandle);
     ~Surface();
 
     inline VkSurfaceKHR getHandle() const

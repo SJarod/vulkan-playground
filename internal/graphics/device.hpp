@@ -13,8 +13,6 @@ class Context;
 class Surface;
 class SwapChain;
 
-typedef VkResult (*PFN_CreateSurfacePredicate)(VkInstance, void *, VkAllocationCallbacks *, VkSurfaceKHR *);
-
 class Device
 {
   private:
@@ -42,6 +40,5 @@ class Device
 
     void initLogicalDevice();
 
-    std::unique_ptr<Surface> createSurface(PFN_CreateSurfacePredicate predicate, void *windowHandle);
     std::unique_ptr<SwapChain> createSwapChain(const Surface &surface);
 };

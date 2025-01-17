@@ -59,18 +59,6 @@ void Device::initLogicalDevice()
         this->handle = std::make_unique<VkDevice>(handle);
 }
 
-std::unique_ptr<Surface> Device::createSurface(PFN_CreateSurfacePredicate predicate, void *windowHandle)
-{
-    VkSurfaceKHR surface;
-    VkResult result = predicate(cx.getInstanceHandle(), windowHandle, nullptr, &surface);
-    if (result != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create window surface : " << result << std::endl;
-        return nullptr;
-    }
-
-    return std::move(std::make_unique<Surface>(cx, surface));
-}
 
 std::unique_ptr<SwapChain> Device::createSwapChain(const Surface &surface)
 {

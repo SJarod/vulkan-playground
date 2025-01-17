@@ -5,6 +5,7 @@
 out
 *.user
 .idea
+.vscode
 
 # resources and large files
 [Aa]sset
