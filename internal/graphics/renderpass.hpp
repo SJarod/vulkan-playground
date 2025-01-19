@@ -13,7 +13,7 @@ class RenderPass
     const Device &device;
     const SwapChain &swapchain;
 
-  private:
+  public:
     VkRenderPass handle;
     std::vector<VkFramebuffer> framebuffers;
 

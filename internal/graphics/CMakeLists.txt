@@ -21,10 +21,14 @@ target_sources(${component}
 
     renderpass.hpp
     renderpass.cpp
+
+    pipeline.hpp
+    pipeline.cpp
 )
 
 target_link_libraries(${component}
     PUBLIC ${Vulkan_LIBRARY}
+    PUBLIC engine
 )
 
 target_include_directories(${component} PUBLIC "${Vulkan_INCLUDE_DIR}")
