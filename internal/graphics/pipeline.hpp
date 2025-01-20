@@ -1,10 +1,12 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include <vulkan/vulkan.h>
 
 class Device;
+class RenderPass;
 
 class Pipeline
 {

@@ -54,9 +54,9 @@ Application::~Application()
 
 void Application::run()
 {
-    m_window->makeContextCurrent();
-
     std::shared_ptr<Device> mainDevice = m_devices[0];
+
+    m_window->makeContextCurrent();
 
     while (!m_window->shouldClose())
     {
