@@ -13,7 +13,7 @@ class Pipeline
   private:
     const Device &device;
 
-  private:
+  public:
     VkPipelineLayout layout;
     VkPipeline handle;
 

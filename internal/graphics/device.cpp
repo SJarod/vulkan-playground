@@ -53,9 +53,35 @@ void Device::initLogicalDevice()
     // create device
     VkDevice handle;
     if (vkCreateDevice(physicalHandle, &createInfo, nullptr, &handle) != VK_SUCCESS)
+    {
         std::cerr << "Failed to create logical device" << std::endl;
+        return;
+    }
     else
+    {
         this->handle = std::make_unique<VkDevice>(handle);
+    }
+
+    vkGetDeviceQueue(handle, graphicsFamilyIndex.value(), 0, &graphicsQueue);
+    if (surface)
+        vkGetDeviceQueue(handle, presentFamilyIndex.value(), 0, &presentQueue);
+}
+
+std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties) const
+{
+    VkPhysicalDeviceMemoryProperties memProp;
+    vkGetPhysicalDeviceMemoryProperties(physicalHandle, &memProp);
+
+    for (uint32_t i = 0; i < memProp.memoryTypeCount; ++i)
+    {
+        bool rightType = requirements.memoryTypeBits & (1 << i);
+        bool rightFlag = (memProp.memoryTypes[i].propertyFlags & properties) == properties;
+        if (rightType && rightFlag)
+            return std::optional<uint32_t>(i);
+    }
+
+    std::cerr << "Failed to find suitable memory type" << std::endl;
+    return std::optional<uint32_t>();
 }
 
 std::vector<VkQueueFamilyProperties> Device::getQueueFamilyProperties() const

@@ -5,7 +5,7 @@
 int main()
 {
     Application app;
-    app.run();
+    app.runLoop();
     
     return 0;
 }

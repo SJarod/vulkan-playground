@@ -22,5 +22,5 @@ class Application
     Application();
     ~Application();
 
-    void run();
+    void runLoop();
 };

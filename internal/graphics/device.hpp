@@ -1,7 +1,7 @@
 #pragma once
 
-#include <optional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -15,8 +15,8 @@ class Device
   private:
     const Context &cx;
 
-public:
-    const Surface* surface = nullptr;
+  public:
+    const Surface *surface = nullptr;
 
   public:
     // physical device
@@ -28,6 +28,8 @@ public:
     std::optional<uint32_t> graphicsFamilyIndex;
     std::optional<uint32_t> presentFamilyIndex;
 
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
   public:
     Device() = delete;
@@ -40,4 +42,6 @@ public:
     std::optional<uint32_t> findPresentQueueFamilyIndex() const;
 
     void initLogicalDevice();
+
+    std::optional<uint32_t> findMemoryTypeIndex(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties) const;
 };

@@ -3,6 +3,10 @@
 #include "renderer/renderer.hpp"
 #include "wsi/window.hpp"
 
+#include "engine/vertex.hpp"
+
+#include "renderer/mesh.hpp"
+
 #include "application.hpp"
 
 Application::Application()
@@ -52,15 +56,28 @@ Application::~Application()
     WindowGLFW::terminate();
 }
 
-void Application::run()
+void Application::runLoop()
 {
     std::shared_ptr<Device> mainDevice = m_devices[0];
 
     m_window->makeContextCurrent();
 
+    const std::vector<Vertex> vertices = {{{0.0f, -0.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
+                                          {{0.5f, 0.5f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
+                                          {{-0.5f, 0.5f, 0.f}, {0.f, 0.f, 1.f, 1.f}}};
+    std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, vertices);
+
     while (!m_window->shouldClose())
     {
-        m_window->swapBuffers();
         m_window->pollEvents();
+
+        uint32_t imageIndex = m_renderer->acquireBackBuffer();
+        m_renderer->recordBackBufferDrawCommands(imageIndex, triangleMesh->vertexBuffer, vertices.size());
+        m_renderer->submitBackBuffer();
+        m_renderer->presentBackBuffer(imageIndex);
+
+        m_renderer->swapBuffers();
+
+        m_window->swapBuffers();
     }
 }

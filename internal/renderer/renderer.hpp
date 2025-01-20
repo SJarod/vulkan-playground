@@ -7,6 +7,15 @@ class RenderPass;
 class SwapChain;
 class Pipeline;
 
+struct BackBufferT
+{
+    VkCommandBuffer commandBuffer;
+
+    VkSemaphore acquireSemaphore;
+    VkSemaphore renderSemaphore;
+    VkFence inFlightFence;
+};
+
 class Renderer
 {
   private:
@@ -14,20 +23,24 @@ class Renderer
     const SwapChain &swapchain;
 
   public:
-    int bufferingCount = 2;
+    int bufferingType = 2;
 
     std::unique_ptr<RenderPass> renderPass;
 
     std::unique_ptr<Pipeline> pipeline;
 
     VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers;
 
-    std::vector<VkSemaphore> drawSemaphores;
-    std::vector<VkSemaphore> presentSemaphores;
-    std::vector<VkFence> inFlightFences;
+    int backBufferIndex = 0;
+    std::vector<BackBufferT> backBuffers;
 
   public:
-    Renderer(const Device &device, const SwapChain &swapchain, const int bufferingCount = 2);
+    Renderer(const Device &device, const SwapChain &swapchain, const int bufferintType = 2);
     ~Renderer();
+
+    uint32_t acquireBackBuffer();
+    void recordBackBufferDrawCommands(uint32_t imageIndex, VkBuffer vertexBuffer, uint32_t vertexCount);
+    void submitBackBuffer();
+    void presentBackBuffer(uint32_t imageIndex);
+    void swapBuffers();
 };
