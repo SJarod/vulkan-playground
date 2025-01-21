@@ -1,58 +1,116 @@
 #include <iostream>
 
+#include "graphics/buffer.hpp"
 #include "graphics/device.hpp"
 
 #include "mesh.hpp"
 
-Mesh::Mesh(const Device &device, const std::vector<Vertex> &vertices) : device(device), vertices(vertices)
+Mesh::Mesh(const Device &device, const std::vector<Vertex> &vertices, const std::vector<uint16_t> &indices)
+    : vertices(vertices), indices(indices)
 {
-    size = sizeof(Vertex) * vertices.size();
+    // vertex buffer
 
-    // TODO : staging buffers for better performance (https://vulkan-tutorial.com/en/Vertex_buffers/Staging_buffer)
-    VkBufferCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                     .flags = 0,
-                                     .size = size,
-                                     .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                     .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-
-    VkResult res = vkCreateBuffer(*device.handle, &createInfo, nullptr, &vertexBuffer);
-    if (res != VK_SUCCESS)
     {
-        std::cerr << "Failed to create buffer : " << res << std::endl;
-        return;
+        size_t vertexBufferSize = sizeof(Vertex) * vertices.size();
+
+        // staging buffer
+
+        std::unique_ptr<Buffer> stagingBuffer =
+            std::make_unique<Buffer>(device, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        stagingBuffer->copyDataToMemory(vertices.data());
+
+        // vertex buffer
+
+        vertexBuffer = std::make_unique<Buffer>(device, vertexBufferSize,
+                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        // transfer from staging buffer to vertex buffer
+
+        VkCommandBufferAllocateInfo allocInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = device.commandPoolTransient,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(*device.handle, &allocInfo, &commandBuffer);
+        VkCommandBufferBeginInfo beginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        VkBufferCopy copyRegion{
+            .size = vertexBufferSize,
+        };
+        vkCmdCopyBuffer(commandBuffer, stagingBuffer->handle, vertexBuffer->handle, 1, &copyRegion);
+        vkEndCommandBuffer(commandBuffer);
+        VkSubmitInfo submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &commandBuffer,
+        };
+        vkQueueSubmit(device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(device.graphicsQueue);
+        vkFreeCommandBuffers(*device.handle, device.commandPool, 1, &commandBuffer);
+        stagingBuffer.reset();
     }
 
-    // VRAM heap
-    VkMemoryRequirements memReq;
-    vkGetBufferMemoryRequirements(*device.handle, vertexBuffer, &memReq);
-    std::optional<uint32_t> memoryTypeIndex =
-        device.findMemoryTypeIndex(memReq, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // index buffer
 
-    VkMemoryAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                      .allocationSize = memReq.size,
-                                      .memoryTypeIndex = memoryTypeIndex.value()};
-
-    res = vkAllocateMemory(*device.handle, &allocInfo, nullptr, &memory);
-    if (res != VK_SUCCESS)
     {
-        std::cerr << "Failed to allocate memory : " << res << std::endl;
-        return;
+        size_t indexBufferSize = sizeof(uint16_t) * indices.size();
+
+        // staging buffer
+
+        std::unique_ptr<Buffer> stagingBuffer =
+            std::make_unique<Buffer>(device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        stagingBuffer->copyDataToMemory(indices.data());
+
+        // vertex buffer
+
+        indexBuffer = std::make_unique<Buffer>(device, indexBufferSize,
+                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        // transfer from staging buffer to vertex buffer
+
+        VkCommandBufferAllocateInfo allocInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = device.commandPoolTransient,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(*device.handle, &allocInfo, &commandBuffer);
+        VkCommandBufferBeginInfo beginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        VkBufferCopy copyRegion{
+            .size = indexBufferSize,
+        };
+        vkCmdCopyBuffer(commandBuffer, stagingBuffer->handle, indexBuffer->handle, 1, &copyRegion);
+        vkEndCommandBuffer(commandBuffer);
+        VkSubmitInfo submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &commandBuffer,
+        };
+        vkQueueSubmit(device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(device.graphicsQueue);
+        vkFreeCommandBuffers(*device.handle, device.commandPool, 1, &commandBuffer);
+        stagingBuffer.reset();
     }
-
-    vkBindBufferMemory(*device.handle, vertexBuffer, memory, 0);
-
-    // filling the VBO (bind and unbind CPU accessible memory)
-    void *data;
-    vkMapMemory(*device.handle, memory, 0, size, 0, &data);
-    // TODO : flush memory
-    memcpy(data, vertices.data(), size);
-    // TODO : invalidate memory before reading in the pipeline
-    vkUnmapMemory(*device.handle, memory);
 }
 
 Mesh::~Mesh()
 {
-    vkFreeMemory(*device.handle, memory, nullptr);
-
-    vkDestroyBuffer(*device.handle, vertexBuffer, nullptr);
+    indexBuffer.reset();
+    vertexBuffer.reset();
 }

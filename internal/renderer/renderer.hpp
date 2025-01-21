@@ -6,6 +6,7 @@ class Device;
 class RenderPass;
 class SwapChain;
 class Pipeline;
+class Mesh;
 
 struct BackBufferT
 {
@@ -29,8 +30,6 @@ class Renderer
 
     std::unique_ptr<Pipeline> pipeline;
 
-    VkCommandPool commandPool;
-
     int backBufferIndex = 0;
     std::vector<BackBufferT> backBuffers;
 
@@ -39,8 +38,13 @@ class Renderer
     ~Renderer();
 
     uint32_t acquireBackBuffer();
-    void recordBackBufferDrawCommands(uint32_t imageIndex, VkBuffer vertexBuffer, uint32_t vertexCount);
+
+    void recordBackBufferPipelineCommands(uint32_t imageIndex);
+    void recordBackBufferDrawObjectCommands(const Mesh &mesh);
+    void recordBackBufferEnd();
+
     void submitBackBuffer();
     void presentBackBuffer(uint32_t imageIndex);
+
     void swapBuffers();
 };

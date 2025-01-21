@@ -5,6 +5,8 @@
 #include "graphics/renderpass.hpp"
 #include "graphics/swapchain.hpp"
 
+#include "mesh.hpp"
+
 #include "renderer.hpp"
 
 Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int bufferingType)
@@ -14,31 +16,17 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
 
     pipeline = std::make_unique<Pipeline>(device, "triangle", *renderPass, swapchain.extent);
 
-    VkCommandPoolCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = device.graphicsFamilyIndex.value(),
-    };
-
-    VkResult res = vkCreateCommandPool(*device.handle, &createInfo, nullptr, &commandPool);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create command pool : " << res << std::endl;
-        return;
-    }
-
     // back buffers
 
     backBuffers.resize(bufferingType);
 
     VkCommandBufferAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                             .commandPool = commandPool,
+                                             .commandPool = device.commandPool,
                                              .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                                              .commandBufferCount = 1U};
     for (int i = 0; i < bufferingType; ++i)
     {
-
-        res = vkAllocateCommandBuffers(*device.handle, &allocInfo, &backBuffers[i].commandBuffer);
+        VkResult res = vkAllocateCommandBuffers(*device.handle, &allocInfo, &backBuffers[i].commandBuffer);
         if (res != VK_SUCCESS)
         {
             std::cerr << "Failed to allocate command buffers : " << res << std::endl;
@@ -53,7 +41,8 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
                                          .flags = VK_FENCE_CREATE_SIGNALED_BIT};
     for (int i = 0; i < bufferingType; ++i)
     {
-        res = vkCreateSemaphore(*device.handle, &semaphoreCreateInfo, nullptr, &backBuffers[i].acquireSemaphore);
+        VkResult res =
+            vkCreateSemaphore(*device.handle, &semaphoreCreateInfo, nullptr, &backBuffers[i].acquireSemaphore);
         if (res != VK_SUCCESS)
         {
             std::cerr << "Failed to create semaphore : " << res << std::endl;
@@ -84,7 +73,6 @@ Renderer::~Renderer()
         vkDestroySemaphore(*device.handle, backBuffers[i].renderSemaphore, nullptr);
         vkDestroySemaphore(*device.handle, backBuffers[i].acquireSemaphore, nullptr);
     }
-    vkDestroyCommandPool(*device.handle, commandPool, nullptr);
 
     pipeline.reset();
     renderPass.reset();
@@ -107,7 +95,7 @@ uint32_t Renderer::acquireBackBuffer()
     return imageIndex;
 }
 
-void Renderer::recordBackBufferDrawCommands(uint32_t imageIndex, VkBuffer vertexBuffer, uint32_t vertexCount)
+void Renderer::recordBackBufferPipelineCommands(uint32_t imageIndex)
 {
     VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
 
@@ -142,15 +130,22 @@ void Renderer::recordBackBufferDrawCommands(uint32_t imageIndex, VkBuffer vertex
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
     VkRect2D scissor = {.offset = {0, 0}, .extent = swapchain.extent};
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    VkBuffer vbos[] = {vertexBuffer};
+}
+void Renderer::recordBackBufferDrawObjectCommands(const Mesh &mesh)
+{
+    VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
+    VkBuffer vbos[] = {mesh.vertexBuffer->handle};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vbos, offsets);
-    vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
-
+    vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->handle, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdDrawIndexed(commandBuffer, mesh.indices.size(), 1, 0, 0, 0);
+}
+void Renderer::recordBackBufferEnd()
+{
+    VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
     vkCmdEndRenderPass(commandBuffer);
 
-    res = vkEndCommandBuffer(commandBuffer);
+    VkResult res = vkEndCommandBuffer(commandBuffer);
     if (res != VK_SUCCESS)
         std::cerr << "Failed to record command buffer : " << res << std::endl;
 }

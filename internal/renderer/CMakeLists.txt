@@ -9,6 +9,9 @@ target_sources(${component}
 
     mesh.hpp
     mesh.cpp
+
+    texture.hpp
+    texture.cpp
 )
 
 target_link_libraries(${component}

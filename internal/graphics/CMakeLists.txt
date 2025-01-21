@@ -24,6 +24,9 @@ target_sources(${component}
 
     pipeline.hpp
     pipeline.cpp
+
+    buffer.hpp
+    buffer.cpp
 )
 
 target_link_libraries(${component}

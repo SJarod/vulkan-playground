@@ -24,7 +24,7 @@ void Context::addDeviceExtension(const char *extension)
     m_deviceExtensions.push_back(extension);
 }
 
-std::vector<VkPhysicalDevice> Context::getAvvailablePhysicalDevices() const
+std::vector<VkPhysicalDevice> Context::getAvailablePhysicalDevices() const
 {
     uint32_t count;
     vkEnumeratePhysicalDevices(m_instance->getHandle(), &count, nullptr);

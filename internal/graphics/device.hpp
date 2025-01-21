@@ -31,6 +31,10 @@ class Device
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
+    VkCommandPool commandPool;
+    VkCommandPool commandPoolTransient;
+
+
   public:
     Device() = delete;
     Device(const Context &cx, VkPhysicalDevice base, const Surface *surface = nullptr);
@@ -44,4 +48,6 @@ class Device
     void initLogicalDevice();
 
     std::optional<uint32_t> findMemoryTypeIndex(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties) const;
+
+
 };

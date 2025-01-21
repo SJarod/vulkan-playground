@@ -58,5 +58,5 @@ class Context
         return m_instance->getHandle();
     }
 
-    std::vector<VkPhysicalDevice> getAvvailablePhysicalDevices() const;
+    std::vector<VkPhysicalDevice> getAvailablePhysicalDevices() const;
 };

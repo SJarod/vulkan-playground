@@ -17,6 +17,9 @@ Device::Device(const Context &cx, VkPhysicalDevice base, const Surface *surface)
 
 Device::~Device()
 {
+    vkDestroyCommandPool(*handle, commandPool, nullptr);
+    vkDestroyCommandPool(*handle, commandPoolTransient, nullptr);
+
     vkDestroyDevice(*handle, nullptr);
 }
 
@@ -62,12 +65,41 @@ void Device::initLogicalDevice()
         this->handle = std::make_unique<VkDevice>(handle);
     }
 
+    // queue
+
     vkGetDeviceQueue(handle, graphicsFamilyIndex.value(), 0, &graphicsQueue);
     if (surface)
         vkGetDeviceQueue(handle, presentFamilyIndex.value(), 0, &presentQueue);
+
+    // command pools
+
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = graphicsFamilyIndex.value(),
+    };
+    VkResult res = vkCreateCommandPool(handle, &commandPoolCreateInfo, nullptr, &commandPool);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create command pool : " << res << std::endl;
+        return;
+    }
+
+    VkCommandPoolCreateInfo commandPoolTransientCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+        .queueFamilyIndex = graphicsFamilyIndex.value(),
+    };
+    res = vkCreateCommandPool(handle, &commandPoolTransientCreateInfo, nullptr, &commandPoolTransient);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create transient command pool : " << res << std::endl;
+        return;
+    }
 }
 
-std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties) const
+std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements requirements,
+                                                    VkMemoryPropertyFlags properties) const
 {
     VkPhysicalDeviceMemoryProperties memProp;
     vkGetPhysicalDeviceMemoryProperties(physicalHandle, &memProp);
