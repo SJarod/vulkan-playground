@@ -84,23 +84,20 @@ void Application::runLoop()
     {
         m_window->pollEvents();
 
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS)
-            camera.transform.position.x += 0.2f;
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS)
-            camera.transform.position.x -= 0.2f;
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS)
-            camera.transform.position.z += 0.2f;
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS)
-            camera.transform.position.z -= 0.2f;
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS)
-            camera.transform.position.y -= 0.2f;
-        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS)
-            camera.transform.position.y += 0.2f;
-
         double xpos, ypos;
         glfwGetCursorPos(m_window->getHandle(), &xpos, &ypos);
-        camera.transform.rotation = glm::quat(glm::vec3((float)-ypos * camera.sensitivity, 0.f, 0.f)) *
-                                    glm::quat(glm::vec3(0.f, (float)-xpos * camera.sensitivity, 0.f));
+        float pitch = (float)ypos * camera.sensitivity;
+        float yaw = (float)xpos * camera.sensitivity;
+        camera.transform.rotation = glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f));
+        float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
+        float zaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS);
+        float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS);
+        camera.transform.position.x += 0.2f * (xaxisInput * glm::cos(yaw) + zaxisInput * glm::sin(yaw));
+        camera.transform.position.z += 0.2f * (zaxisInput * glm::cos(yaw) + xaxisInput * -glm::sin(yaw));
+        camera.transform.position.y += 0.2f * yaxisInput;
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
