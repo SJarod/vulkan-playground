@@ -36,3 +36,9 @@ foreach(SOURCE ${SHADER_SOURCES})
 	)
 	MATH(EXPR SHADER_I "${SHADER_I} + 1")
 endforeach()
+
+
+add_custom_command(TARGET ${component}
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets/" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/assets/"
+)

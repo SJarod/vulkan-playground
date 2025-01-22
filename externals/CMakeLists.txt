@@ -12,3 +12,13 @@ foreach (_variableName ${_variableNames})
 endforeach()
 
 add_subdirectory(glm)
+
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_NO_EXPORT ON)
+add_subdirectory(assimp)
+
+add_library(stb INTERFACE)
+target_sources(stb INTERFACE
+    stb/stb_image.h
+)
+target_include_directories(stb INTERFACE ./stb/)

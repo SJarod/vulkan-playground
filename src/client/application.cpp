@@ -1,3 +1,6 @@
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
 #include "renderer/renderer.hpp"
@@ -65,12 +68,11 @@ void Application::runLoop()
 
     m_window->makeContextCurrent();
 
-    const std::vector<Vertex> vertices = {{{-0.5f, -0.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {1.f, 0.f}},
-                                          {{0.5f, -0.5f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f}},
-                                          {{0.5f, 0.5f, 0.f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 1.f}},
-                                          {{-0.5f, 0.5f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {1.f, 1.f}}};
-    const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
-    std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, vertices, indices);
+    Assimp::Importer importer;
+    const aiScene *pScene =
+        importer.ReadFile("assets/viking_room.obj", aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                                                        aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+    std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, pScene);
 
     const std::vector<unsigned char> imagePixels = {255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255};
     std::unique_ptr<Texture> simpleTexture = std::make_unique<Texture>(
@@ -91,14 +93,14 @@ void Application::runLoop()
         camera.transform.rotation = glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f));
         float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
-        float zaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS) -
-                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS);
-        float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS) -
-                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS);
-        camera.transform.position.x += 0.2f * (xaxisInput * glm::cos(yaw) + zaxisInput * glm::sin(yaw));
-        camera.transform.position.z +=
-            0.2f * (zaxisInput * glm::cos(yaw) + xaxisInput * -glm::sin(yaw) + yaxisInput * glm::sin(pitch));
-        camera.transform.position.y += 0.2f * (yaxisInput * -glm::cos(pitch) + zaxisInput * glm::sin(pitch));
+        float zaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS);
+        float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS);
+        glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(camera.transform.rotation);
+        if (!(xaxisInput == 0.f && zaxisInput == 0.f && yaxisInput == 0.f))
+            dir = glm::normalize(dir);
+        camera.transform.position += 0.2f * dir;
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 

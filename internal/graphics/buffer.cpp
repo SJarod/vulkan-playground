@@ -46,6 +46,18 @@ void Buffer::copyDataToMemory(const void *srcData)
     vkUnmapMemory(*device.handle, memory);
 }
 
+void Buffer::transferBufferToBuffer(VkBuffer src)
+{
+    VkCommandBuffer commandBuffer = device.cmdBeginOneTimeSubmit();
+
+    VkBufferCopy copyRegion{
+        .size = size,
+    };
+    vkCmdCopyBuffer(commandBuffer, src, handle, 1, &copyRegion);
+
+    device.cmdEndOneTimeSubmit(commandBuffer);
+}
+
 Buffer::~Buffer()
 {
     vkFreeMemory(*device.handle, memory, nullptr);

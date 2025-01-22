@@ -10,3 +10,9 @@
 [submodule "Vulkan-Utility-Libraries"]
 	path = Vulkan-Utility-Libraries
 	url = https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git
+[submodule "externals/assimp"]
+	path = externals/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "externals/stb"]
+	path = externals/stb
+	url = https://github.com/nothings/stb.git

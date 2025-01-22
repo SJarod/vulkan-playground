@@ -19,4 +19,6 @@ class Buffer
     ~Buffer();
 
     void copyDataToMemory(const void *srcData);
+
+    void transferBufferToBuffer(VkBuffer src);
 };

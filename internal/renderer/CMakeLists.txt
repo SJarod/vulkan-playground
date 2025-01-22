@@ -16,6 +16,7 @@ target_sources(${component}
 
 target_link_libraries(${component}
     PUBLIC graphics
+    PUBLIC assimp::assimp
 )
 
 
