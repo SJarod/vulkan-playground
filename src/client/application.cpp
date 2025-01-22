@@ -1,6 +1,9 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
 #include "renderer/renderer.hpp"
@@ -74,9 +77,11 @@ void Application::runLoop()
                                                         aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
     std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, pScene);
 
-    const std::vector<unsigned char> imagePixels = {255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255};
+    int texWidth, texHeight, texChannels;
+    stbi_uc *textureData = stbi_load("assets/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     std::unique_ptr<Texture> simpleTexture = std::make_unique<Texture>(
-        *mainDevice, 2, 2, imagePixels.data(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
+        *mainDevice, texWidth, texHeight, textureData, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
+    stbi_image_free(textureData);
 
     m_renderer->writeDescriptorSets(*simpleTexture);
 

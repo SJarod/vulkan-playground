@@ -13,4 +13,5 @@ target_link_libraries(${component}
     PUBLIC graphics
     PUBLIC renderer
     PUBLIC assimp::assimp
+    PUBLIC stb
 )
