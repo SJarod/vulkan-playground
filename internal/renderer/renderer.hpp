@@ -7,6 +7,7 @@ class RenderPass;
 class SwapChain;
 class Pipeline;
 class Mesh;
+class Buffer;
 
 struct BackBufferT
 {
@@ -30,6 +31,11 @@ class Renderer
 
     std::unique_ptr<Pipeline> pipeline;
 
+    VkDescriptorPool descriptorPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+    std::vector<std::unique_ptr<Buffer>> uniformBuffers;
+    std::vector<void *> uniformBuffersMapped;
+
     int backBufferIndex = 0;
     std::vector<BackBufferT> backBuffers;
 
@@ -37,11 +43,16 @@ class Renderer
     Renderer(const Device &device, const SwapChain &swapchain, const int bufferintType = 2);
     ~Renderer();
 
+    void writeDescriptorSets();
+
+    void updateUniformBuffers(uint32_t imageIndex);
+
     uint32_t acquireBackBuffer();
 
-    void recordBackBufferPipelineCommands(uint32_t imageIndex);
+    void recordBackBufferBeginRenderPass(uint32_t imageIndex);
+    void recordBackBufferDescriptorSetsCommands(uint32_t imageIndex);
     void recordBackBufferDrawObjectCommands(const Mesh &mesh);
-    void recordBackBufferEnd();
+    void recordBackBufferEndRenderPass();
 
     void submitBackBuffer();
     void presentBackBuffer(uint32_t imageIndex);

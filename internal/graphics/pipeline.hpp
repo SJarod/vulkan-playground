@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <vulkan/vulkan.h>
 
@@ -14,7 +14,8 @@ class Pipeline
     const Device &device;
 
   public:
-    VkPipelineLayout layout;
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkPipelineLayout pipelineLayout;
     VkPipeline handle;
 
     VkShaderModule create_shader_module(VkDevice device, const std::vector<char> &code);

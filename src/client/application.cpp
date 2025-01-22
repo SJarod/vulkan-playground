@@ -62,12 +62,14 @@ void Application::runLoop()
 
     m_window->makeContextCurrent();
 
-    const std::vector<Vertex> vertices = {{{-0.5f, -0.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
-                                          {{0.5f, -0.5f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
-                                          {{0.5f, 0.5f, 0.f}, {0.f, 0.f, 1.f, 1.f}},
-                                          {{-0.5f, 0.5f, 0.f}, {1.f, 1.f, 1.f, 1.f}}};
+    const std::vector<Vertex> vertices = {{{-0.5f, -0.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {1.f, 0.f}},
+                                          {{0.5f, -0.5f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f}},
+                                          {{0.5f, 0.5f, 0.f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 1.f}},
+                                          {{-0.5f, 0.5f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {1.f, 1.f}}};
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
     std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, vertices, indices);
+
+    m_renderer->writeDescriptorSets();
 
     while (!m_window->shouldClose())
     {
@@ -75,9 +77,12 @@ void Application::runLoop()
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
-        m_renderer->recordBackBufferPipelineCommands(imageIndex);
+        m_renderer->updateUniformBuffers(imageIndex);
+
+        m_renderer->recordBackBufferBeginRenderPass(imageIndex);
+        m_renderer->recordBackBufferDescriptorSetsCommands(imageIndex);
         m_renderer->recordBackBufferDrawObjectCommands(*triangleMesh);
-        m_renderer->recordBackBufferEnd();
+        m_renderer->recordBackBufferEndRenderPass();
 
         m_renderer->submitBackBuffer();
         m_renderer->presentBackBuffer(imageIndex);
@@ -85,5 +90,10 @@ void Application::runLoop()
         m_renderer->swapBuffers();
 
         m_window->swapBuffers();
+
+        // static int a = 0;
+        // if (a == 2)
+        //     break;
+        // ++a;
     }
 }

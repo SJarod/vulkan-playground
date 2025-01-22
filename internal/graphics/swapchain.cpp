@@ -70,6 +70,8 @@ SwapChain::SwapChain(const Device &device) : device(device)
     images.resize(imageCount);
     vkGetSwapchainImagesKHR(*device.handle, handle, &imageCount, images.data());
 
+    frameInFlightCount = images.size();
+
     // image views
 
     imageViews.resize(imageCount);

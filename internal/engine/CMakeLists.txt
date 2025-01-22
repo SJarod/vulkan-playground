@@ -4,8 +4,8 @@ add_library(${component} INTERFACE "")
 
 target_sources(${component}
     PRIVATE
+    uniform.hpp
     vertex.hpp
-    vertex_desc.hpp
 )
 
 target_link_libraries(${component}

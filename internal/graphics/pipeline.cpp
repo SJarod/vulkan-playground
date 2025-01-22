@@ -1,3 +1,4 @@
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -5,7 +6,8 @@
 #include "device.hpp"
 #include "renderpass.hpp"
 
-#include "engine/vertex_desc.hpp"
+#include "engine/uniform.hpp"
+#include "engine/vertex.hpp"
 
 #include "pipeline.hpp"
 
@@ -82,8 +84,8 @@ Pipeline::Pipeline(const Device &device, const char *shaderName, const RenderPas
         .pDynamicStates = dynamicStates.data()};
 
     // vertex buffer (enabling the binding for our Vertex structure)
-    auto binding = VertexDescT::get_vertex_binding_description();
-    auto attribs = VertexDescT::get_vertex_attribute_description();
+    auto binding = Vertex::get_vertex_input_binding_description();
+    auto attribs = Vertex::get_vertex_input_attribute_description();
     VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount = 1,
@@ -154,15 +156,28 @@ Pipeline::Pipeline(const Device &device, const char *shaderName, const RenderPas
         .pAttachments = &colorBlendAttachment,
         .blendConstants = {0.f, 0.f, 0.f, 0.f}};
 
-    // shader variables
-    // create pipeline layout
+    // descriptor set layout
+
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
+        UniformBufferObject::get_uniform_descriptor_set_layout_bindings();
+    VkDescriptorSetLayoutCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = static_cast<uint32_t>(layoutBindings.size()),
+        .pBindings = layoutBindings.data(),
+    };
+    VkResult res = vkCreateDescriptorSetLayout(*device.handle, &createInfo, nullptr, &descriptorSetLayout);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create descriptor set layout : " << res << std::endl;
+        return;
+    }
+    std::vector<VkDescriptorSetLayout> setLayouts = {descriptorSetLayout};
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                           .setLayoutCount = 0,
-                                                           .pSetLayouts = nullptr,
+                                                           .setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
+                                                           .pSetLayouts = setLayouts.data(),
                                                            .pushConstantRangeCount = 0,
                                                            .pPushConstantRanges = nullptr};
-
-    VkResult res = vkCreatePipelineLayout(*device.handle, &pipelineLayoutCreateInfo, nullptr, &layout);
+    res = vkCreatePipelineLayout(*device.handle, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to create pipeline layout : " << res << std::endl;
@@ -183,7 +198,7 @@ Pipeline::Pipeline(const Device &device, const char *shaderName, const RenderPas
                                                        .pColorBlendState = &colorBlendCreateInfo,
                                                        .pDynamicState = &dynamicStateCreateInfo,
                                                        // pipeline layout
-                                                       .layout = layout,
+                                                       .layout = pipelineLayout,
                                                        // render pass
                                                        .renderPass = renderPass.handle,
                                                        .subpass = 0,
@@ -203,6 +218,7 @@ Pipeline::Pipeline(const Device &device, const char *shaderName, const RenderPas
 
 Pipeline::~Pipeline()
 {
-    vkDestroyPipelineLayout(*device.handle, layout, nullptr);
+    vkDestroyPipelineLayout(*device.handle, pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(*device.handle, descriptorSetLayout, nullptr);
     vkDestroyPipeline(*device.handle, handle, nullptr);
 }

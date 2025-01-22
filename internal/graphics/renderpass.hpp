@@ -9,7 +9,7 @@ class SwapChain;
 
 class RenderPass
 {
-  private:
+  public:
     const Device &device;
     const SwapChain &swapchain;
 

@@ -20,6 +20,8 @@ class SwapChain
     std::vector<VkImage> images;
     std::vector<VkImageView> imageViews;
 
+    uint32_t frameInFlightCount;
+
   public:
     SwapChain(const Device &device);
     ~SwapChain();
