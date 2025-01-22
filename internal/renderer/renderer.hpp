@@ -7,6 +7,7 @@ class RenderPass;
 class SwapChain;
 class Pipeline;
 class Mesh;
+class Texture;
 class Buffer;
 
 struct BackBufferT
@@ -43,7 +44,7 @@ class Renderer
     Renderer(const Device &device, const SwapChain &swapchain, const int bufferintType = 2);
     ~Renderer();
 
-    void writeDescriptorSets();
+    void writeDescriptorSets(const Texture& texture);
 
     void updateUniformBuffers(uint32_t imageIndex);
 

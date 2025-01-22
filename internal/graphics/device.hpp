@@ -21,6 +21,8 @@ class Device
   public:
     // physical device
     VkPhysicalDevice physicalHandle;
+    VkPhysicalDeviceFeatures features;
+    VkPhysicalDeviceProperties props;
 
     // logical device
     std::unique_ptr<VkDevice> handle;
@@ -34,7 +36,6 @@ class Device
     VkCommandPool commandPool;
     VkCommandPool commandPoolTransient;
 
-
   public:
     Device() = delete;
     Device(const Context &cx, VkPhysicalDevice base, const Surface *surface = nullptr);
@@ -47,7 +48,9 @@ class Device
 
     void initLogicalDevice();
 
-    std::optional<uint32_t> findMemoryTypeIndex(VkMemoryRequirements requirements, VkMemoryPropertyFlags properties) const;
+    std::optional<uint32_t> findMemoryTypeIndex(VkMemoryRequirements requirements,
+                                                VkMemoryPropertyFlags properties) const;
 
-
+    VkCommandBuffer cmdBeginOneTimeSubmit() const;
+    void cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const;
 };

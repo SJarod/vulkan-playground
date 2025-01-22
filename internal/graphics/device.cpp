@@ -10,6 +10,8 @@
 Device::Device(const Context &cx, VkPhysicalDevice base, const Surface *surface) : cx(cx), surface(surface)
 {
     physicalHandle = base;
+    vkGetPhysicalDeviceFeatures(base, &features);
+    vkGetPhysicalDeviceProperties(base, &props);
     graphicsFamilyIndex = findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
     if (this->surface)
         presentFamilyIndex = findPresentQueueFamilyIndex();
@@ -149,4 +151,41 @@ std::optional<uint32_t> Device::findPresentQueueFamilyIndex() const
             return std::optional<uint32_t>(i);
     }
     return std::optional<uint32_t>();
+}
+
+VkCommandBuffer Device::cmdBeginOneTimeSubmit() const
+{
+    VkCommandBufferAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPoolTransient,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(*handle, &allocInfo, &commandBuffer);
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+    VkResult res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    if (res != VK_SUCCESS)
+        std::cerr << "Failed to begin one time submit command buffer : " << res << std::endl;
+
+    return commandBuffer;
+}
+void Device::cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const
+{
+    vkEndCommandBuffer(commandBuffer);
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &commandBuffer,
+    };
+
+    VkResult res = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    if (res != VK_SUCCESS)
+        std::cerr << "Failed to submit one time command buffer : " << res << std::endl;
+
+    vkQueueWaitIdle(graphicsQueue);
+    vkFreeCommandBuffers(*handle, commandPoolTransient, 1, &commandBuffer);
 }

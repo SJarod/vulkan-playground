@@ -8,6 +8,7 @@
 #include "graphics/swapchain.hpp"
 
 #include "mesh.hpp"
+#include "texture.hpp"
 
 #include "engine/uniform.hpp"
 
@@ -139,7 +140,7 @@ Renderer::~Renderer()
     renderPass.reset();
 }
 
-void Renderer::writeDescriptorSets()
+void Renderer::writeDescriptorSets(const Texture &texture)
 {
     for (int i = 0; i < descriptorSets.size(); ++i)
     {
@@ -149,9 +150,9 @@ void Renderer::writeDescriptorSets()
             .range = sizeof(UniformBufferObject),
         };
         VkDescriptorImageInfo imageInfo = {
-            // .sampler = sampler,
-            // .imageView = textureView,
-            // .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .sampler = texture.sampler,
+            .imageView = texture.imageView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
         std::vector<VkWriteDescriptorSet> writes =
             UniformBufferObject::get_uniform_descriptor_set_writes(descriptorSets[i], bufferInfo, imageInfo);

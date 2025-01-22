@@ -9,5 +9,5 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 void main()
 {
-	oColor = vec4(fragUV, 0.0, 1.0);
+	oColor = texture(texSampler, fragUV);
 }

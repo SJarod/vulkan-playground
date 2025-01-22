@@ -27,6 +27,9 @@ target_sources(${component}
 
     buffer.hpp
     buffer.cpp
+
+    image.hpp
+    image.cpp
 )
 
 target_link_libraries(${component}

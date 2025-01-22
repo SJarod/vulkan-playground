@@ -43,7 +43,7 @@ class UniformBufferObject
                                                      .pBufferInfo = &bufferInfo,
                                                      .pTexelBufferView = nullptr,
                                                  },
-                                                 /*VkWriteDescriptorSet{
+                                                 VkWriteDescriptorSet{
                                                      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                      .dstSet = descriptorSet,
                                                      .dstBinding = 1,
@@ -52,7 +52,7 @@ class UniformBufferObject
                                                      .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                      .pImageInfo = &imageInfo,
                                                      .pTexelBufferView = nullptr,
-                                                 }*/};
+                                                 }};
     }
 
     static inline std::vector<VkDescriptorPoolSize> get_uniform_descriptor_pool_sizes(uint32_t frameInFlightCount)

@@ -6,6 +6,7 @@
 #include "engine/vertex.hpp"
 
 #include "renderer/mesh.hpp"
+#include "renderer/texture.hpp"
 
 #include "application.hpp"
 
@@ -69,7 +70,11 @@ void Application::runLoop()
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
     std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, vertices, indices);
 
-    m_renderer->writeDescriptorSets();
+    const std::vector<unsigned char> imagePixels = {255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255};
+    std::unique_ptr<Texture> simpleTexture = std::make_unique<Texture>(
+        *mainDevice, 2, 2, imagePixels.data(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
+
+    m_renderer->writeDescriptorSets(*simpleTexture);
 
     while (!m_window->shouldClose())
     {
@@ -90,10 +95,5 @@ void Application::runLoop()
         m_renderer->swapBuffers();
 
         m_window->swapBuffers();
-
-        // static int a = 0;
-        // if (a == 2)
-        //     break;
-        // ++a;
     }
 }
