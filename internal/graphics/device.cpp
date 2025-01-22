@@ -7,7 +7,8 @@
 
 #include "device.hpp"
 
-Device::Device(const Context &cx, VkPhysicalDevice base, const Surface *surface) : cx(cx), surface(surface)
+Device::Device(const std::shared_ptr<Context> cx, VkPhysicalDevice base, const Surface *surface)
+    : cx(cx), surface(surface)
 {
     physicalHandle = base;
     vkGetPhysicalDeviceFeatures(base, &features);
@@ -49,10 +50,11 @@ void Device::initLogicalDevice()
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
-        .enabledLayerCount = static_cast<uint32_t>(cx.getLayerCount()),
-        .ppEnabledLayerNames = cx.getLayers(),
-        .enabledExtensionCount = static_cast<uint32_t>(cx.getDeviceExtensionCount()),
-        .ppEnabledExtensionNames = cx.getDeviceExtensions(),
+        .enabledLayerCount = static_cast<uint32_t>(cx->getLayerCount()),
+        .ppEnabledLayerNames = cx->getLayers(),
+        .enabledExtensionCount = static_cast<uint32_t>(cx->getDeviceExtensionCount()),
+        .ppEnabledExtensionNames = cx->getDeviceExtensions(),
+        .pEnabledFeatures = &features,
     };
 
     // create device

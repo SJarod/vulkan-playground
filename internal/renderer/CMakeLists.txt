@@ -12,11 +12,15 @@ target_sources(${component}
 
     texture.hpp
     texture.cpp
+
+    scene.hpp
+    scene.cpp
 )
 
 target_link_libraries(${component}
     PUBLIC graphics
     PUBLIC assimp::assimp
+    PUBLIC stb
 )
 
 

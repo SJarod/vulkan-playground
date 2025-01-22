@@ -12,6 +12,4 @@ target_link_libraries(${component}
     PUBLIC wsi
     PUBLIC graphics
     PUBLIC renderer
-    PUBLIC assimp::assimp
-    PUBLIC stb
 )

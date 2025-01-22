@@ -1,8 +1,4 @@
 #include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
@@ -13,6 +9,7 @@
 
 #include "renderer/mesh.hpp"
 #include "renderer/texture.hpp"
+#include "renderer/scene.hpp"
 
 #include "engine/camera.hpp"
 
@@ -42,7 +39,7 @@ Application::Application()
     auto physicalDevices = m_context->getAvailablePhysicalDevices();
     for (auto physicalDevice : physicalDevices)
     {
-        m_devices.emplace_back(std::make_shared<Device>(*m_context, physicalDevice, m_window->surface.get()));
+        m_devices.emplace_back(std::make_shared<Device>(m_context, physicalDevice, m_window->surface.get()));
         (*(m_devices.end() - 1))->initLogicalDevice();
     }
 
@@ -56,6 +53,7 @@ Application::Application()
 Application::~Application()
 {
     m_renderer.reset();
+    m_scene.reset();
 
     m_window.reset();
 
@@ -71,19 +69,9 @@ void Application::runLoop()
 
     m_window->makeContextCurrent();
 
-    Assimp::Importer importer;
-    const aiScene *pScene =
-        importer.ReadFile("assets/viking_room.obj", aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                                        aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
-    std::unique_ptr<Mesh> triangleMesh = std::make_unique<Mesh>(*mainDevice, pScene);
+    m_scene = std::make_unique<Scene>(mainDevice);
 
-    int texWidth, texHeight, texChannels;
-    stbi_uc *textureData = stbi_load("assets/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    std::unique_ptr<Texture> simpleTexture = std::make_unique<Texture>(
-        *mainDevice, texWidth, texHeight, textureData, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
-    stbi_image_free(textureData);
-
-    m_renderer->writeDescriptorSets(*simpleTexture);
+    m_renderer->writeDescriptorSets(*m_scene->objects[0]->texture);
 
     Camera camera;
 
@@ -113,7 +101,7 @@ void Application::runLoop()
 
         m_renderer->recordBackBufferBeginRenderPass(imageIndex);
         m_renderer->recordBackBufferDescriptorSetsCommands(imageIndex);
-        m_renderer->recordBackBufferDrawObjectCommands(*triangleMesh);
+        m_renderer->recordBackBufferDrawObjectCommands(*m_scene->objects[0]);
         m_renderer->recordBackBufferEndRenderPass();
 
         m_renderer->submitBackBuffer();

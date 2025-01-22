@@ -8,7 +8,7 @@ class Image;
 class Texture
 {
   private:
-    const Device &device;
+    const std::shared_ptr<Device> device;
 
   private:
     uint32_t width;
@@ -20,7 +20,7 @@ class Texture
     VkSampler sampler;
 
   public:
-    Texture(const Device &device, uint32_t width, uint32_t height, const void *data, VkFormat format,
+    Texture(const std::shared_ptr<Device> device, uint32_t width, uint32_t height, const void *data, VkFormat format,
             VkImageTiling tiling, VkFilter samplerFilter);
     ~Texture();
 };

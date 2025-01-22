@@ -6,18 +6,18 @@
 
 #include "texture.hpp"
 
-Texture::Texture(const Device &device, uint32_t width, uint32_t height, const void *data, VkFormat format,
-                 VkImageTiling tiling, VkFilter samplerFilter)
+Texture::Texture(const std::shared_ptr<Device> device, uint32_t width, uint32_t height, const void *data,
+                 VkFormat format, VkImageTiling tiling, VkFilter samplerFilter)
     : device(device), width(width), height(height)
 {
     size_t imageSize = width * height * 4;
 
-    Buffer stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    Buffer stagingBuffer = Buffer(*device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     stagingBuffer.copyDataToMemory(data);
 
-    image = std::make_unique<Image>(device, format, width, height, tiling,
+    image = std::make_unique<Image>(*device, format, width, height, tiling,
                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -44,8 +44,8 @@ Texture::Texture(const Device &device, uint32_t width, uint32_t height, const vo
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
         .mipLodBias = 0.f,
-        .anisotropyEnable = device.features.samplerAnisotropy,
-        .maxAnisotropy = device.props.limits.maxSamplerAnisotropy,
+        .anisotropyEnable = device->features.samplerAnisotropy,
+        .maxAnisotropy = device->props.limits.maxSamplerAnisotropy,
         .compareEnable = VK_FALSE,
         .compareOp = VK_COMPARE_OP_ALWAYS,
         .minLod = 0.f,
@@ -54,14 +54,14 @@ Texture::Texture(const Device &device, uint32_t width, uint32_t height, const vo
         .unnormalizedCoordinates = VK_FALSE,
     };
 
-    VkResult res = vkCreateSampler(*device.handle, &createInfo, nullptr, &sampler);
+    VkResult res = vkCreateSampler(*device->handle, &createInfo, nullptr, &sampler);
     if (res != VK_SUCCESS)
         std::cerr << "Failed to create image sampler : " << res << std::endl;
 }
 
 Texture::~Texture()
 {
-    vkDestroySampler(*device.handle, sampler, nullptr);
-    vkDestroyImageView(*device.handle, imageView, nullptr);
+    vkDestroySampler(*device->handle, sampler, nullptr);
+    vkDestroyImageView(*device->handle, imageView, nullptr);
     image.reset();
 }

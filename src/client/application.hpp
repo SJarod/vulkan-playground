@@ -7,6 +7,7 @@ class WindowGLFW;
 class Context;
 class Device;
 class Renderer;
+class Scene;
 
 class Application
 {
@@ -17,6 +18,8 @@ class Application
     std::vector<std::shared_ptr<Device>> m_devices;
 
     std::shared_ptr<Renderer> m_renderer;
+
+    std::unique_ptr<Scene> m_scene;
 
   public:
     Application();

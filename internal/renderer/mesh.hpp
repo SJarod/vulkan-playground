@@ -9,15 +9,19 @@
 
 class Device;
 class Buffer;
+class Texture;
 class aiScene;
 
 class Mesh
 {
   private:
-    const Device &device;
+    const std::shared_ptr<Device> device;
 
   private:
-    void initVerticesAndIndices();
+    void createVertexBuffer();
+    void createIndexBuffer();
+    void setVerticesFromAiScene(const aiScene *pScene);
+    void setIndicesFromAiScene(const aiScene *pScene);
 
   public:
     std::unique_ptr<Buffer> vertexBuffer;
@@ -27,8 +31,12 @@ class Mesh
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
 
+    std::unique_ptr<Texture> texture;
+
   public:
-    Mesh(const Device &device, const std::vector<Vertex> &vertices, const std::vector<uint16_t> &indices);
-    Mesh(const Device &device, const aiScene *pScene);
+    Mesh(const std::shared_ptr<Device> device, const std::vector<Vertex> &vertices,
+         const std::vector<uint16_t> &indices);
+    Mesh(const std::shared_ptr<Device> device, const aiScene *pScene);
+    Mesh(const std::shared_ptr<Device> device, const char *modelFilename, const char *textureFilename);
     ~Mesh();
 };

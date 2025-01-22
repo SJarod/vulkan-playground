@@ -13,7 +13,7 @@ class Context;
 class Device
 {
   private:
-    const Context &cx;
+    const std::shared_ptr<Context> cx;
 
   public:
     const Surface *surface = nullptr;
@@ -38,7 +38,7 @@ class Device
 
   public:
     Device() = delete;
-    Device(const Context &cx, VkPhysicalDevice base, const Surface *surface = nullptr);
+    Device(const std::shared_ptr<Context> cx, VkPhysicalDevice base, const Surface *surface = nullptr);
     ~Device();
 
     std::vector<VkQueueFamilyProperties> getQueueFamilyProperties() const;
