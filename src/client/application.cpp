@@ -96,8 +96,9 @@ void Application::runLoop()
         float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS);
         camera.transform.position.x += 0.2f * (xaxisInput * glm::cos(yaw) + zaxisInput * glm::sin(yaw));
-        camera.transform.position.z += 0.2f * (zaxisInput * glm::cos(yaw) + xaxisInput * -glm::sin(yaw));
-        camera.transform.position.y += 0.2f * yaxisInput;
+        camera.transform.position.z +=
+            0.2f * (zaxisInput * glm::cos(yaw) + xaxisInput * -glm::sin(yaw) + yaxisInput * glm::sin(pitch));
+        camera.transform.position.y += 0.2f * (yaxisInput * -glm::cos(pitch) + zaxisInput * glm::sin(pitch));
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
