@@ -12,6 +12,8 @@
 
 #include "engine/uniform.hpp"
 
+#include "engine/camera.hpp"
+
 #include "renderer.hpp"
 
 Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int bufferingType)
@@ -160,14 +162,12 @@ void Renderer::writeDescriptorSets(const Texture &texture)
     }
 }
 
-void Renderer::updateUniformBuffers(uint32_t imageIndex)
+void Renderer::updateUniformBuffers(uint32_t imageIndex, const Camera &camera)
 {
     UniformBufferObject ubo = {
-        .model = glm::mat4(1.f),
-        .view = glm::lookAt(glm::vec3(0.f, 1.f, 1.f), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.)),
-        .proj = glm::perspective(glm::radians(45.f),
-                                 renderPass->swapchain.extent.width / (float)renderPass->swapchain.extent.height, 0.1f,
-                                 1000.f),
+        .model = glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.f)),
+        .view = camera.getViewMatrix(),
+        .proj = camera.proj,
     };
     memcpy(uniformBuffersMapped[imageIndex], &ubo, sizeof(ubo));
 }

@@ -8,6 +8,8 @@
 #include "renderer/mesh.hpp"
 #include "renderer/texture.hpp"
 
+#include "engine/camera.hpp"
+
 #include "application.hpp"
 
 Application::Application()
@@ -76,13 +78,33 @@ void Application::runLoop()
 
     m_renderer->writeDescriptorSets(*simpleTexture);
 
+    Camera camera;
+
     while (!m_window->shouldClose())
     {
         m_window->pollEvents();
 
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS)
+            camera.transform.position.x += 0.2f;
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS)
+            camera.transform.position.x -= 0.2f;
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS)
+            camera.transform.position.z += 0.2f;
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS)
+            camera.transform.position.z -= 0.2f;
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS)
+            camera.transform.position.y -= 0.2f;
+        if (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS)
+            camera.transform.position.y += 0.2f;
+
+        double xpos, ypos;
+        glfwGetCursorPos(m_window->getHandle(), &xpos, &ypos);
+        camera.transform.rotation = glm::quat(glm::vec3((float)-ypos * camera.sensitivity, 0.f, 0.f)) *
+                                    glm::quat(glm::vec3(0.f, (float)-xpos * camera.sensitivity, 0.f));
+
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
-        m_renderer->updateUniformBuffers(imageIndex);
+        m_renderer->updateUniformBuffers(imageIndex, camera);
 
         m_renderer->recordBackBufferBeginRenderPass(imageIndex);
         m_renderer->recordBackBufferDescriptorSetsCommands(imageIndex);

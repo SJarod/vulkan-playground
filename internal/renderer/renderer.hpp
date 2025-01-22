@@ -9,6 +9,7 @@ class Pipeline;
 class Mesh;
 class Texture;
 class Buffer;
+class Camera;
 
 struct BackBufferT
 {
@@ -46,7 +47,7 @@ class Renderer
 
     void writeDescriptorSets(const Texture& texture);
 
-    void updateUniformBuffers(uint32_t imageIndex);
+    void updateUniformBuffers(uint32_t imageIndex, const Camera &camera);
 
     uint32_t acquireBackBuffer();
 
