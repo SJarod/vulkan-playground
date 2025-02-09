@@ -6,8 +6,8 @@
 #include "image.hpp"
 
 Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
-             VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
-    : device(device), format(format), width(width), height(height)
+             VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
+    : device(device), format(format), width(width), height(height), aspectFlags(aspectFlags)
 {
     VkImageCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -40,9 +40,11 @@ Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t hei
     vkGetImageMemoryRequirements(*device.handle, handle, &memReq);
     std::optional<uint32_t> memoryTypeIndex = device.findMemoryTypeIndex(memReq, properties);
 
-    VkMemoryAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                      .allocationSize = memReq.size,
-                                      .memoryTypeIndex = memoryTypeIndex.value()};
+    VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memReq.size,
+        .memoryTypeIndex = memoryTypeIndex.value(),
+    };
 
     res = vkAllocateMemory(*device.handle, &allocInfo, nullptr, &memory);
     if (res != VK_SUCCESS)
@@ -77,7 +79,7 @@ void Image::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayo
         .image = handle,
         .subresourceRange =
             {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask = aspectFlags,
                 .baseMipLevel = 0,
                 .levelCount = 1,
                 .baseArrayLayer = 0,
@@ -99,7 +101,7 @@ void Image::copyBufferToImage(VkBuffer buffer)
         .bufferImageHeight = 0,
         .imageSubresource =
             {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask = aspectFlags,
                 .mipLevel = 0,
                 .baseArrayLayer = 0,
                 .layerCount = 1,
@@ -118,30 +120,34 @@ void Image::copyBufferToImage(VkBuffer buffer)
             },
     };
 
-    vkCmdCopyBufferToImage(commandBuffer, buffer, handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                           &region);
+    vkCmdCopyBufferToImage(commandBuffer, buffer, handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     device.cmdEndOneTimeSubmit(commandBuffer);
 }
 
 VkImageView Image::createImageView()
 {
-    VkImageViewCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                        .image = handle,
-                                        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                                        .format = format,
-                                        .components =
-                                            {
-                                                .r = VK_COMPONENT_SWIZZLE_R,
-                                                .g = VK_COMPONENT_SWIZZLE_G,
-                                                .b = VK_COMPONENT_SWIZZLE_B,
-                                                .a = VK_COMPONENT_SWIZZLE_A,
-                                            },
-                                        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                             .baseMipLevel = 0,
-                                                             .levelCount = 1,
-                                                             .baseArrayLayer = 0,
-                                                             .layerCount = 1}};
+    VkImageViewCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = handle,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = format,
+        .components =
+            {
+                .r = VK_COMPONENT_SWIZZLE_R,
+                .g = VK_COMPONENT_SWIZZLE_G,
+                .b = VK_COMPONENT_SWIZZLE_B,
+                .a = VK_COMPONENT_SWIZZLE_A,
+            },
+        .subresourceRange =
+            {
+                .aspectMask = aspectFlags,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+    };
 
     VkImageView imageView;
     VkResult res = vkCreateImageView(*device.handle, &createInfo, nullptr, &imageView);

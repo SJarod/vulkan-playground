@@ -204,13 +204,21 @@ void Renderer::recordBackBufferBeginRenderPass(uint32_t imageIndex)
         return;
     }
 
-    VkClearValue clearColor = {.color = {0.2f, 0.2f, 0.2f, 1.f}};
-    VkRenderPassBeginInfo renderPassBeginInfo = {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                 .renderPass = renderPass->handle,
-                                                 .framebuffer = renderPass->framebuffers[imageIndex],
-                                                 .renderArea = {.offset = {0, 0}, .extent = swapchain.extent},
-                                                 .clearValueCount = 1,
-                                                 .pClearValues = &clearColor};
+    VkClearValue clearColor = {
+        .color = {0.2f, 0.2f, 0.2f, 1.f},
+    };
+    VkClearValue clearDepth = {
+        .depthStencil = {1.f, 0},
+    };
+    std::array<VkClearValue, 2> clearValues = {clearColor, clearDepth};
+    VkRenderPassBeginInfo renderPassBeginInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = renderPass->handle,
+        .framebuffer = renderPass->framebuffers[imageIndex],
+        .renderArea = {.offset = {0, 0}, .extent = swapchain.extent},
+        .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+        .pClearValues = clearValues.data(),
+    };
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);

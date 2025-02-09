@@ -14,13 +14,15 @@ class Image
     uint32_t width;
     uint32_t height;
 
+    VkImageAspectFlags aspectFlags;
+
   private:
     VkImage handle;
     VkDeviceMemory memory;
 
   public:
     Image(const Device &device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
-          VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
+          VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags);
     ~Image();
 
     void transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask,

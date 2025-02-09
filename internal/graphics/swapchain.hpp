@@ -1,10 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <vulkan/vulkan.h>
 
 class Device;
+class Image;
 
 class SwapChain
 {
@@ -19,6 +21,10 @@ class SwapChain
 
     std::vector<VkImage> images;
     std::vector<VkImageView> imageViews;
+
+    VkFormat depthFormat;
+    std::unique_ptr<Image> depthImage;
+    VkImageView depthImageView;
 
     uint32_t frameInFlightCount;
 

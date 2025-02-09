@@ -1,8 +1,9 @@
 #include <iostream>
 
-#include "swapchain.hpp"
-
 #include "device.hpp"
+#include "image.hpp"
+
+#include "swapchain.hpp"
 
 SwapChain::SwapChain(const Device &device) : device(device)
 {
@@ -30,19 +31,21 @@ SwapChain::SwapChain(const Device &device) : device(device)
     if (capabilities.maxImageCount > 0 && capabilities.maxImageCount < imageCount)
         imageCount = capabilities.maxImageCount;
 
-    VkSwapchainCreateInfoKHR createInfo = {.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                           .surface = surfaceHandle,
-                                           .minImageCount = imageCount,
-                                           .imageFormat = surfaceFormat.format,
-                                           .imageColorSpace = surfaceFormat.colorSpace,
-                                           .imageExtent = extent,
-                                           .imageArrayLayers = 1,
-                                           .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                           .preTransform = capabilities.currentTransform,
-                                           .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                                           .presentMode = presentMode,
-                                           .clipped = VK_TRUE,
-                                           .oldSwapchain = VK_NULL_HANDLE};
+    VkSwapchainCreateInfoKHR createInfo = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = surfaceHandle,
+        .minImageCount = imageCount,
+        .imageFormat = surfaceFormat.format,
+        .imageColorSpace = surfaceFormat.colorSpace,
+        .imageExtent = extent,
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = VK_NULL_HANDLE,
+    };
 
     uint32_t queueFamilyIndices[] = {device.graphicsFamilyIndex.value(), device.presentFamilyIndex.value()};
 
@@ -78,28 +81,49 @@ SwapChain::SwapChain(const Device &device) : device(device)
 
     for (size_t i = 0; i < imageCount; ++i)
     {
-        VkImageViewCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                            .image = images[i],
-                                            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                                            .format = imageFormat,
-                                            .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                           .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                           .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                           .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-                                            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                                 .baseMipLevel = 0,
-                                                                 .levelCount = 1,
-                                                                 .baseArrayLayer = 0,
-                                                                 .layerCount = 1}};
+        VkImageViewCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = images[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = imageFormat,
+            .components =
+                {
+                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                },
+            .subresourceRange =
+                {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+        };
 
         VkResult res = vkCreateImageView(*device.handle, &createInfo, nullptr, &imageViews[i]);
         if (res != VK_SUCCESS)
             std::cerr << "Failed to create an image view : " << res << std::endl;
     }
+
+    depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+    depthImage =
+        std::make_unique<Image>(device, depthFormat, extent.width, extent.height, VK_IMAGE_TILING_OPTIMAL,
+                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImage->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0,
+                                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+    depthImageView = depthImage->createImageView();
 }
 
 SwapChain::~SwapChain()
 {
+    vkDestroyImageView(*device.handle, depthImageView, nullptr);
+    depthImage.reset();
     for (VkImageView &imageView : imageViews)
     {
         vkDestroyImageView(*device.handle, imageView, nullptr);
