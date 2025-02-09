@@ -14,7 +14,7 @@ class Camera
     float near = 0.1f;
     float far = 1000.f;
 
-    float sensitivity = 0.01f;
+    float sensitivity = 1.f;
 
     glm::mat4 proj;
 

@@ -8,8 +8,8 @@
 #include "engine/vertex.hpp"
 
 #include "renderer/mesh.hpp"
-#include "renderer/texture.hpp"
 #include "renderer/scene.hpp"
+#include "renderer/texture.hpp"
 
 #include "engine/camera.hpp"
 
@@ -23,6 +23,7 @@ Application::Application()
 
     m_context = std::make_shared<Context>();
     m_context->addLayer("VK_LAYER_KHRONOS_validation");
+    m_context->addLayer("VK_LAYER_LUNARG_monitor");
     m_context->addInstanceExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     m_context->addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     auto requireExtensions = m_window->getRequiredExtensions();
@@ -75,15 +76,28 @@ void Application::runLoop()
 
     Camera camera;
 
+    std::pair<double, double> mousePos;
+    glfwGetCursorPos(m_window->getHandle(), &mousePos.first, &mousePos.second);
+
     while (!m_window->shouldClose())
     {
-        m_window->pollEvents();
+        m_timeManager.markFrame();
+        float deltaTime = m_timeManager.deltaTime();
 
         double xpos, ypos;
         glfwGetCursorPos(m_window->getHandle(), &xpos, &ypos);
-        float pitch = (float)ypos * camera.sensitivity;
-        float yaw = (float)xpos * camera.sensitivity;
-        camera.transform.rotation = glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f));
+        std::pair<double, double> deltaMousePos;
+        deltaMousePos.first = mousePos.first - xpos;
+        deltaMousePos.second = mousePos.second - ypos;
+        mousePos.first = xpos;
+        mousePos.second = ypos;
+
+        m_window->pollEvents();
+
+        float pitch = (float)deltaMousePos.second * camera.sensitivity * deltaTime;
+        float yaw = (float)deltaMousePos.first * camera.sensitivity * deltaTime;
+        camera.transform.rotation = glm::quat(glm::vec3(pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f)) * camera.transform.rotation;
+
         float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
         float zaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS) -
@@ -93,7 +107,7 @@ void Application::runLoop()
         glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(camera.transform.rotation);
         if (!(xaxisInput == 0.f && zaxisInput == 0.f && yaxisInput == 0.f))
             dir = glm::normalize(dir);
-        camera.transform.position += 0.2f * dir;
+        camera.transform.position += 0.2f * dir * deltaTime;
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 

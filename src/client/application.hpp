@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "time_manager.hpp"
+
 class WindowGLFW;
 class Context;
 class Device;
@@ -20,6 +22,8 @@ class Application
     std::shared_ptr<Renderer> m_renderer;
 
     std::unique_ptr<Scene> m_scene;
+
+    Time::TimeManager m_timeManager;
 
   public:
     Application();
