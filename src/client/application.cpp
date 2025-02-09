@@ -98,14 +98,14 @@ void Application::runLoop()
         float pitch = (float)deltaMousePos.second * camera.sensitivity * deltaTime;
         float yaw = (float)deltaMousePos.first * camera.sensitivity * deltaTime;
         camera.transform.rotation =
-            glm::quat(glm::vec3(pitch, 0.f, 0.f)) * camera.transform.rotation * glm::quat(glm::vec3(0.f, -yaw, 0.f));
+            glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * camera.transform.rotation * glm::quat(glm::vec3(0.f, -yaw, 0.f));
 
         float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
         float zaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_W) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS);
-        float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS) -
-                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS);
+        float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS) -
+                           (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS);
         glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(camera.transform.rotation);
         if (!(xaxisInput == 0.f && zaxisInput == 0.f && yaxisInput == 0.f))
             dir = glm::normalize(dir);

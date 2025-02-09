@@ -165,7 +165,7 @@ void Renderer::writeDescriptorSets(const Texture &texture)
 void Renderer::updateUniformBuffers(uint32_t imageIndex, const Camera &camera)
 {
     UniformBufferObject ubo = {
-        .model = glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.f)),
+        .model = glm::identity<glm::mat4>(),
         .view = camera.getViewMatrix(),
         .proj = camera.proj,
     };

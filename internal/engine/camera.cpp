@@ -5,7 +5,8 @@
 Camera::Camera()
 {
     proj = glm::perspective(glm::radians(yFov), aspectRatio, near, far);
-    // proj[1][1] *= -1;
+    // Y flip
+    proj[1][1] *= -1;
 }
 
 glm::mat4 Camera::getViewMatrix() const
