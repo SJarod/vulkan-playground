@@ -78,7 +78,8 @@ void Application::runLoop()
 
     std::pair<double, double> mousePos;
     glfwGetCursorPos(m_window->getHandle(), &mousePos.first, &mousePos.second);
-
+    glfwSetInputMode(m_window->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    
     while (!m_window->shouldClose())
     {
         m_timeManager.markFrame();
@@ -94,6 +95,8 @@ void Application::runLoop()
 
         m_window->pollEvents();
 
+
+        // TODO : fix camera roll rotation
         float pitch = (float)deltaMousePos.second * camera.sensitivity * deltaTime;
         float yaw = (float)deltaMousePos.first * camera.sensitivity * deltaTime;
         camera.transform.rotation = glm::quat(glm::vec3(pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f)) * camera.transform.rotation;
@@ -107,7 +110,7 @@ void Application::runLoop()
         glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(camera.transform.rotation);
         if (!(xaxisInput == 0.f && zaxisInput == 0.f && yaxisInput == 0.f))
             dir = glm::normalize(dir);
-        camera.transform.position += 0.2f * dir * deltaTime;
+        camera.transform.position += camera.speed * dir * deltaTime;
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
