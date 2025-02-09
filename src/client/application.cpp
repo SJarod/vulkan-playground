@@ -95,11 +95,10 @@ void Application::runLoop()
 
         m_window->pollEvents();
 
-        // TODO : fix camera roll rotation
         float pitch = (float)deltaMousePos.second * camera.sensitivity * deltaTime;
         float yaw = (float)deltaMousePos.first * camera.sensitivity * deltaTime;
         camera.transform.rotation =
-            glm::quat(glm::vec3(pitch, 0.f, 0.f)) * glm::quat(glm::vec3(0.f, -yaw, 0.f)) * camera.transform.rotation;
+            glm::quat(glm::vec3(pitch, 0.f, 0.f)) * camera.transform.rotation * glm::quat(glm::vec3(0.f, -yaw, 0.f));
 
         float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
