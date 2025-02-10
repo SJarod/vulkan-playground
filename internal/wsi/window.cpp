@@ -18,7 +18,7 @@ void WindowGLFW::terminate()
 WindowGLFW::WindowGLFW()
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_handle = glfwCreateWindow(width, height, "test", NULL, NULL);
+    m_handle = glfwCreateWindow(width, height, "Playground", NULL, NULL);
     if (!m_handle)
         throw;
 }

@@ -3,7 +3,7 @@
 
 #include "instance.hpp"
 
-Instance::Instance(const Context &cx)
+Instance::Instance(const Context &cx, bool bDebugReportCallback)
 {
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -14,26 +14,26 @@ Instance::Instance(const Context &cx)
         .apiVersion = VK_API_VERSION_1_3,
     };
 
-#if 0
-    VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-        .flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
-                 VK_DEBUG_REPORT_DEBUG_BIT_EXT,
-        .pfnCallback = &Instance::debugReportCallback,
-    };
-#endif
     VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-#if 0
-        .pNext = &debugReportCreateInfo,
-#endif
         .pApplicationInfo = &appInfo,
         .enabledLayerCount = static_cast<uint32_t>(cx.getLayerCount()),
         .ppEnabledLayerNames = cx.getLayers(),
         .enabledExtensionCount = static_cast<uint32_t>(cx.getInstanceExtensionCount()),
         .ppEnabledExtensionNames = cx.getInstanceExtensions(),
     };
+    if (bDebugReportCallback)
+    {
+        VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+            .flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
+                     VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
+                     VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+            .pfnCallback = &Instance::debugReportCallback,
+        };
+
+        createInfo.pNext = &debugReportCreateInfo;
+    }
 
     uint32_t count;
     vkEnumerateInstanceLayerProperties(&count, nullptr);
