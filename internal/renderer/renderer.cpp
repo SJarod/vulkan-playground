@@ -16,26 +16,24 @@
 
 #include "renderer.hpp"
 
-Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int bufferingType)
-    : device(device), swapchain(swapchain), bufferingType(bufferingType)
+MeshRenderer::MeshRenderer(const Device &device, const RenderPass &renderPass, const std::shared_ptr<Mesh> mesh)
+    : device(device), renderPass(renderPass), mesh(mesh)
 {
-    renderPass = std::make_unique<RenderPass>(device, swapchain);
-
-    pipeline = std::make_unique<Pipeline>(device, "triangle", *renderPass, swapchain.extent);
+    pipeline = std::make_unique<Pipeline>(device, "triangle", renderPass, renderPass.swapchain.extent);
 
     // descriptor pool
 
     std::vector<VkDescriptorPoolSize> poolSizes = {VkDescriptorPoolSize{
                                                        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                       .descriptorCount = renderPass->swapchain.frameInFlightCount,
+                                                       .descriptorCount = renderPass.swapchain.frameInFlightCount,
                                                    },
                                                    VkDescriptorPoolSize{
                                                        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                       .descriptorCount = renderPass->swapchain.frameInFlightCount,
+                                                       .descriptorCount = renderPass.swapchain.frameInFlightCount,
                                                    }};
     VkDescriptorPoolCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .maxSets = renderPass->swapchain.frameInFlightCount,
+        .maxSets = renderPass.swapchain.frameInFlightCount,
         .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
         .pPoolSizes = poolSizes.data(),
     };
@@ -48,15 +46,15 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
 
     // descriptor sets
 
-    std::vector<VkDescriptorSetLayout> setLayouts(renderPass->swapchain.frameInFlightCount,
+    std::vector<VkDescriptorSetLayout> setLayouts(renderPass.swapchain.frameInFlightCount,
                                                   pipeline->descriptorSetLayout);
     VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = descriptorPool,
-        .descriptorSetCount = renderPass->swapchain.frameInFlightCount,
+        .descriptorSetCount = renderPass.swapchain.frameInFlightCount,
         .pSetLayouts = setLayouts.data(),
     };
-    descriptorSets.resize(renderPass->swapchain.frameInFlightCount);
+    descriptorSets.resize(renderPass.swapchain.frameInFlightCount);
     res = vkAllocateDescriptorSets(*device.handle, &descriptorSetAllocInfo, descriptorSets.data());
     if (res != VK_SUCCESS)
     {
@@ -66,8 +64,8 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
 
     // uniform buffers
 
-    uniformBuffers.resize(renderPass->swapchain.frameInFlightCount);
-    uniformBuffersMapped.resize(renderPass->swapchain.frameInFlightCount);
+    uniformBuffers.resize(renderPass.swapchain.frameInFlightCount);
+    uniformBuffersMapped.resize(renderPass.swapchain.frameInFlightCount);
     for (int i = 0; i < uniformBuffers.size(); ++i)
     {
         uniformBuffers[i] =
@@ -76,6 +74,79 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
         vkMapMemory(*device.handle, uniformBuffers[i]->memory, 0, sizeof(UniformBufferObject), 0,
                     &uniformBuffersMapped[i]);
     }
+
+    writeDescriptorSets(*mesh->texture);
+}
+
+MeshRenderer::~MeshRenderer()
+{
+    vkDestroyDescriptorPool(*device.handle, descriptorPool, nullptr);
+
+    pipeline.reset();
+}
+
+void MeshRenderer::writeDescriptorSets(const Texture &texture)
+{
+    for (int i = 0; i < descriptorSets.size(); ++i)
+    {
+        VkDescriptorBufferInfo bufferInfo = {
+            .buffer = uniformBuffers[i]->handle,
+            .offset = 0,
+            .range = sizeof(UniformBufferObject),
+        };
+        VkDescriptorImageInfo imageInfo = {
+            .sampler = texture.sampler,
+            .imageView = texture.imageView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+        std::vector<VkWriteDescriptorSet> writes =
+            UniformBufferObject::get_uniform_descriptor_set_writes(descriptorSets[i], bufferInfo, imageInfo);
+        vkUpdateDescriptorSets(*device.handle, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    }
+}
+
+void MeshRenderer::updateUniformBuffers(uint32_t imageIndex, const Camera &camera)
+{
+    UniformBufferObject ubo = {
+        .model = glm::identity<glm::mat4>(),
+        .view = camera.getViewMatrix(),
+        .proj = camera.proj,
+    };
+    memcpy(uniformBuffersMapped[imageIndex], &ubo, sizeof(ubo));
+}
+
+void MeshRenderer::recordBackBufferPipelineCommands(VkCommandBuffer &commandBuffer, uint32_t imageIndex)
+{
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+
+    VkViewport viewport = {.x = 0.f,
+                           .y = 0.f,
+                           .width = static_cast<float>(renderPass.swapchain.extent.width),
+                           .height = static_cast<float>(renderPass.swapchain.extent.height),
+                           .minDepth = 0.f,
+                           .maxDepth = 1.f};
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    VkRect2D scissor = {.offset = {0, 0}, .extent = renderPass.swapchain.extent};
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+void MeshRenderer::recordBackBufferDescriptorSetsCommands(VkCommandBuffer &commandBuffer, uint32_t imageIndex)
+{
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipelineLayout, 0, 1,
+                            &descriptorSets[imageIndex], 0, nullptr);
+}
+void MeshRenderer::recordBackBufferDrawObjectCommands(VkCommandBuffer &commandBuffer)
+{
+    VkBuffer vbos[] = {mesh->vertexBuffer->handle};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vbos, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer->handle, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdDrawIndexed(commandBuffer, mesh->indices.size(), 1, 0, 0, 0);
+}
+
+Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int bufferingType)
+    : device(device), swapchain(swapchain), bufferingType(bufferingType)
+{
+    renderPass = std::make_unique<RenderPass>(device, swapchain);
 
     // back buffers
 
@@ -87,7 +158,7 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
                                                           .commandBufferCount = 1U};
     for (int i = 0; i < bufferingType; ++i)
     {
-        res = vkAllocateCommandBuffers(*device.handle, &commandBufferAllocInfo, &backBuffers[i].commandBuffer);
+        VkResult res = vkAllocateCommandBuffers(*device.handle, &commandBufferAllocInfo, &backBuffers[i].commandBuffer);
         if (res != VK_SUCCESS)
         {
             std::cerr << "Failed to allocate command buffers : " << res << std::endl;
@@ -102,7 +173,8 @@ Renderer::Renderer(const Device &device, const SwapChain &swapchain, const int b
                                          .flags = VK_FENCE_CREATE_SIGNALED_BIT};
     for (int i = 0; i < bufferingType; ++i)
     {
-        res = vkCreateSemaphore(*device.handle, &semaphoreCreateInfo, nullptr, &backBuffers[i].acquireSemaphore);
+        VkResult res =
+            vkCreateSemaphore(*device.handle, &semaphoreCreateInfo, nullptr, &backBuffers[i].acquireSemaphore);
         if (res != VK_SUCCESS)
         {
             std::cerr << "Failed to create semaphore : " << res << std::endl;
@@ -136,40 +208,12 @@ Renderer::~Renderer()
         vkDestroySemaphore(*device.handle, backBuffers[i].acquireSemaphore, nullptr);
     }
 
-    vkDestroyDescriptorPool(*device.handle, descriptorPool, nullptr);
-
-    pipeline.reset();
     renderPass.reset();
 }
 
-void Renderer::writeDescriptorSets(const Texture &texture)
+void Renderer::registerRenderer(const std::shared_ptr<Mesh> mesh)
 {
-    for (int i = 0; i < descriptorSets.size(); ++i)
-    {
-        VkDescriptorBufferInfo bufferInfo = {
-            .buffer = uniformBuffers[i]->handle,
-            .offset = 0,
-            .range = sizeof(UniformBufferObject),
-        };
-        VkDescriptorImageInfo imageInfo = {
-            .sampler = texture.sampler,
-            .imageView = texture.imageView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        };
-        std::vector<VkWriteDescriptorSet> writes =
-            UniformBufferObject::get_uniform_descriptor_set_writes(descriptorSets[i], bufferInfo, imageInfo);
-        vkUpdateDescriptorSets(*device.handle, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
-    }
-}
-
-void Renderer::updateUniformBuffers(uint32_t imageIndex, const Camera &camera)
-{
-    UniformBufferObject ubo = {
-        .model = glm::identity<glm::mat4>(),
-        .view = camera.getViewMatrix(),
-        .proj = camera.proj,
-    };
-    memcpy(uniformBuffersMapped[imageIndex], &ubo, sizeof(ubo));
+    meshRenderers.emplace_back(std::make_shared<MeshRenderer>(device, *renderPass, mesh));
 }
 
 uint32_t Renderer::acquireBackBuffer()
@@ -189,7 +233,7 @@ uint32_t Renderer::acquireBackBuffer()
     return imageIndex;
 }
 
-void Renderer::recordBackBufferBeginRenderPass(uint32_t imageIndex)
+void Renderer::recordRenderers(uint32_t imageIndex, const Camera &camera)
 {
     VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
 
@@ -215,44 +259,29 @@ void Renderer::recordBackBufferBeginRenderPass(uint32_t imageIndex)
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .renderPass = renderPass->handle,
         .framebuffer = renderPass->framebuffers[imageIndex],
-        .renderArea = {.offset = {0, 0}, .extent = swapchain.extent},
+        .renderArea =
+            {
+                .offset = {0, 0},
+                .extent = renderPass->swapchain.extent,
+            },
         .clearValueCount = static_cast<uint32_t>(clearValues.size()),
         .pClearValues = clearValues.data(),
     };
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+    for (int i = 0; i < meshRenderers.size(); ++i)
+    {
+        meshRenderers[i]->updateUniformBuffers(imageIndex, camera);
 
-    VkViewport viewport = {.x = 0.f,
-                           .y = 0.f,
-                           .width = static_cast<float>(swapchain.extent.width),
-                           .height = static_cast<float>(swapchain.extent.height),
-                           .minDepth = 0.f,
-                           .maxDepth = 1.f};
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    VkRect2D scissor = {.offset = {0, 0}, .extent = swapchain.extent};
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-}
-void Renderer::recordBackBufferDescriptorSetsCommands(uint32_t imageIndex)
-{
-    vkCmdBindDescriptorSets(backBuffers[backBufferIndex].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline->pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, nullptr);
-}
-void Renderer::recordBackBufferDrawObjectCommands(const Mesh &mesh)
-{
-    VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
-    VkBuffer vbos[] = {mesh.vertexBuffer->handle};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vbos, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->handle, 0, VK_INDEX_TYPE_UINT16);
-    vkCmdDrawIndexed(commandBuffer, mesh.indices.size(), 1, 0, 0, 0);
-}
-void Renderer::recordBackBufferEndRenderPass()
-{
-    VkCommandBuffer &commandBuffer = backBuffers[backBufferIndex].commandBuffer;
+        meshRenderers[i]->recordBackBufferPipelineCommands(commandBuffer, imageIndex);
+
+        meshRenderers[i]->recordBackBufferDescriptorSetsCommands(commandBuffer, imageIndex);
+        meshRenderers[i]->recordBackBufferDrawObjectCommands(commandBuffer);
+    }
+
     vkCmdEndRenderPass(commandBuffer);
 
-    VkResult res = vkEndCommandBuffer(commandBuffer);
+    res = vkEndCommandBuffer(commandBuffer);
     if (res != VK_SUCCESS)
         std::cerr << "Failed to record command buffer : " << res << std::endl;
 }

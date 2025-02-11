@@ -62,14 +62,7 @@ Mesh::Mesh(const std::shared_ptr<Device> device, const std::vector<Vertex> &vert
     : device(device), vertices(vertices), indices(indices)
 {
     createVertexBuffer();
-}
-
-Mesh::Mesh(const std::shared_ptr<Device> device, const aiScene *pScene) : device(device)
-{
-    setVerticesFromAiScene(pScene);
-    setIndicesFromAiScene(pScene);
-
-    createVertexBuffer();
+    createIndexBuffer();
 }
 
 void Mesh::setVerticesFromAiScene(const aiScene *pScene)

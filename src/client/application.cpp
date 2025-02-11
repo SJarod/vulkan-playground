@@ -71,8 +71,10 @@ void Application::runLoop()
     m_window->makeContextCurrent();
 
     m_scene = std::make_unique<Scene>(mainDevice);
-
-    m_renderer->writeDescriptorSets(*m_scene->objects[0]->texture);
+    for (int i = 0; i < m_scene->objects.size(); ++i)
+    {
+        m_renderer->registerRenderer(m_scene->objects[i]);
+    }
 
     Camera camera;
 
@@ -113,12 +115,7 @@ void Application::runLoop()
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 
-        m_renderer->updateUniformBuffers(imageIndex, camera);
-
-        m_renderer->recordBackBufferBeginRenderPass(imageIndex);
-        m_renderer->recordBackBufferDescriptorSetsCommands(imageIndex);
-        m_renderer->recordBackBufferDrawObjectCommands(*m_scene->objects[0]);
-        m_renderer->recordBackBufferEndRenderPass();
+        m_renderer->recordRenderers(imageIndex, camera);
 
         m_renderer->submitBackBuffer();
         m_renderer->presentBackBuffer(imageIndex);
