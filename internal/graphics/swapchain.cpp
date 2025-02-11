@@ -113,10 +113,10 @@ SwapChain::SwapChain(const Device &device) : device(device)
         std::make_unique<Image>(device, depthFormat, extent.width, extent.height, VK_IMAGE_TILING_OPTIMAL,
                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                 VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    depthImage->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0,
-                                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+    ImageLayoutTransitionBuilder builder;
+    ImageLayoutTransitionDirector director(*depthImage);
+    director.build<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL>(builder);
+    depthImage->transitionImageLayout(*builder.build());
     depthImageView = depthImage->createImageView();
 }
 

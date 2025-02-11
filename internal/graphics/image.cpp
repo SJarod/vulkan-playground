@@ -62,31 +62,12 @@ Image::~Image()
     vkDestroyImage(*device.handle, handle, nullptr);
 }
 
-void Image::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask,
-                                  VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
-                                  VkPipelineStageFlags dstStageMask)
+void Image::transitionImageLayout(ImageLayoutTransition transition)
 {
     VkCommandBuffer commandBuffer = device.cmdBeginOneTimeSubmit();
 
-    VkImageMemoryBarrier barrier = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .srcAccessMask = srcAccessMask,
-        .dstAccessMask = dstAccessMask,
-        .oldLayout = oldLayout,
-        .newLayout = newLayout,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = handle,
-        .subresourceRange =
-            {
-                .aspectMask = aspectFlags,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-    };
-    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(commandBuffer, transition.srcStageMask, transition.dstStageMask, 0, 0, nullptr, 0, nullptr, 1,
+                         &transition.barrier);
 
     device.cmdEndOneTimeSubmit(commandBuffer);
 }
@@ -155,4 +136,23 @@ VkImageView Image::createImageView()
         std::cerr << "Failed to create image view : " << res << std::endl;
 
     return imageView;
+}
+
+void ImageLayoutTransitionBuilder::restart()
+{
+    product = std::make_shared<ImageLayoutTransition>();
+    product->barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    product->barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    product->barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    product->barrier.subresourceRange.baseMipLevel = 0;
+    product->barrier.subresourceRange.levelCount = 1;
+    product->barrier.subresourceRange.baseArrayLayer = 0;
+    product->barrier.subresourceRange.layerCount = 1;
+}
+
+std::shared_ptr<ImageLayoutTransition> ImageLayoutTransitionBuilder::build()
+{
+    auto built = std::move(product);
+    restart();
+    return built;
 }
