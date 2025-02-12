@@ -31,4 +31,10 @@ class SwapChain
   public:
     SwapChain(const Device &device);
     ~SwapChain();
+
+  public:
+    [[nodiscard]] const VkSwapchainKHR &getHandle() const
+    {
+        return handle;
+    }
 };

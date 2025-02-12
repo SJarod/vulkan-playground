@@ -4,6 +4,8 @@
 
 #include <glm/glm.hpp>
 
+#include <vulkan/vulkan.h>
+
 class Vertex
 {
   public:

@@ -46,9 +46,12 @@ Application::Application()
 
     std::shared_ptr<Device> mainDevice = m_devices[0];
 
-    m_window->swapchain = std::make_unique<SwapChain>(*mainDevice);
+    m_window->swapchain = std::make_shared<SwapChain>(*mainDevice);
 
-    m_renderer = std::make_shared<Renderer>(*mainDevice, *m_window->swapchain);
+    RendererBuilder rb;
+    rb.setDevice(mainDevice);
+    rb.setSwapChain(m_window->swapchain);
+    m_renderer = rb.build();
 }
 
 Application::~Application()
@@ -73,7 +76,7 @@ void Application::runLoop()
     m_scene = std::make_unique<Scene>(mainDevice);
     for (int i = 0; i < m_scene->objects.size(); ++i)
     {
-        m_renderer->registerRenderer(m_scene->objects[i]);
+        m_renderer->registerRenderState(m_scene->objects[i]);
     }
 
     Camera camera;

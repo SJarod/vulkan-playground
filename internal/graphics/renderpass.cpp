@@ -1,4 +1,5 @@
 #include <array>
+#include <cassert>
 #include <iostream>
 
 #include "device.hpp"
@@ -6,59 +7,32 @@
 
 #include "renderpass.hpp"
 
-RenderPass::RenderPass(const Device &device, const SwapChain &swapchain) : device(device), swapchain(swapchain)
+RenderPass::~RenderPass()
 {
-    VkAttachmentDescription colorAttachment = {
-        .format = swapchain.imageFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        // load : what to do with the already existing image on the framebuffer
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        // store : what to do with the newly rendered image on the framebuffer
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-    };
+    if (!device.lock())
+        return;
 
-    VkAttachmentReference colorAttachmentRef = {
-        .attachment = 0, // colorAttachment is index 0
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    };
+    const VkDevice &deviceHandle = device.lock()->getHandle();
 
-    VkAttachmentDescription depthAttachment = {
-        .format = swapchain.depthFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
+    for (VkFramebuffer &framebuffer : framebuffers)
+    {
+        vkDestroyFramebuffer(deviceHandle, framebuffer, nullptr);
+    }
+    vkDestroyRenderPass(deviceHandle, handle, nullptr);
+}
 
-    VkAttachmentReference depthAttachmentRef = {
-        .attachment = 1,
-        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
+std::unique_ptr<RenderPass> RenderPassBuilder::build()
+{
+    assert(device.lock());
+    assert(swapchain.lock());
 
-    VkSubpassDescription subpass = {
-        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachmentRef,
-        .pDepthStencilAttachment = &depthAttachmentRef,
-    };
+    const VkDevice &deviceHandle = device.lock()->getHandle();
+    auto swapchainPtr = swapchain.lock();
 
-    VkSubpassDependency dependency = {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-    };
+    subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentReferences.size());
+    subpass.pColorAttachments = colorAttachmentReferences.data();
+    subpass.pDepthStencilAttachment = depthAttachmentReferences.data();
 
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = static_cast<uint32_t>(attachments.size()),
@@ -66,43 +40,39 @@ RenderPass::RenderPass(const Device &device, const SwapChain &swapchain) : devic
         .subpassCount = 1,
         .pSubpasses = &subpass,
         .dependencyCount = 1,
-        .pDependencies = &dependency,
+        .pDependencies = &subpassDependency,
     };
 
-    VkResult res = vkCreateRenderPass(*device.handle, &createInfo, nullptr, &handle);
+    VkRenderPass handle;
+    VkResult res = vkCreateRenderPass(deviceHandle, &createInfo, nullptr, &handle);
     if (res != VK_SUCCESS)
     {
-
         std::cerr << "Failed to create render pass : " << res << std::endl;
-        return;
+        return nullptr;
     }
 
-    framebuffers.resize(swapchain.imageViews.size());
+    product->handle = handle;
 
-    for (size_t i = 0; i < swapchain.imageViews.size(); ++i)
+    product->framebuffers.resize(swapchainPtr->imageViews.size());
+
+    for (size_t i = 0; i < swapchainPtr->imageViews.size(); ++i)
     {
-        std::array<VkImageView, 2> framebufferAttachments = {swapchain.imageViews[i], swapchain.depthImageView};
+        std::array<VkImageView, 2> framebufferAttachments = {swapchainPtr->imageViews[i], swapchainPtr->depthImageView};
         VkFramebufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = handle,
             .attachmentCount = static_cast<uint32_t>(framebufferAttachments.size()),
             .pAttachments = framebufferAttachments.data(),
-            .width = swapchain.extent.width,
-            .height = swapchain.extent.height,
+            .width = swapchainPtr->extent.width,
+            .height = swapchainPtr->extent.height,
             .layers = 1,
         };
 
-        VkResult res = vkCreateFramebuffer(*device.handle, &createInfo, nullptr, &framebuffers[i]);
+        VkResult res = vkCreateFramebuffer(deviceHandle, &createInfo, nullptr, &product->framebuffers[i]);
         if (res != VK_SUCCESS)
             std::cerr << "Failed to create framebuffer : " << res << std::endl;
     }
-}
 
-RenderPass::~RenderPass()
-{
-    for (VkFramebuffer &framebuffer : framebuffers)
-    {
-        vkDestroyFramebuffer(*device.handle, framebuffer, nullptr);
-    }
-    vkDestroyRenderPass(*device.handle, handle, nullptr);
+    auto result = std::move(product);
+    return result;
 }

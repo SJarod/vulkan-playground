@@ -1,3 +1,4 @@
+#include <cassert>
 #include <iostream>
 
 #include "buffer.hpp"
@@ -140,7 +141,7 @@ VkImageView Image::createImageView()
 
 void ImageLayoutTransitionBuilder::restart()
 {
-    product = std::make_shared<ImageLayoutTransition>();
+    product = std::unique_ptr<ImageLayoutTransition>(new ImageLayoutTransition);
     product->barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     product->barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     product->barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -150,9 +151,12 @@ void ImageLayoutTransitionBuilder::restart()
     product->barrier.subresourceRange.layerCount = 1;
 }
 
-std::shared_ptr<ImageLayoutTransition> ImageLayoutTransitionBuilder::build()
+std::unique_ptr<ImageLayoutTransition> ImageLayoutTransitionBuilder::build()
 {
-    auto built = std::move(product);
+    // image must be set using setImage()
+    assert(product->barrier.image);
+
+    auto result = std::move(product);
     restart();
-    return built;
+    return result;
 }

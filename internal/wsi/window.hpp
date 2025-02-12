@@ -23,7 +23,7 @@ class WindowGLFW : public WindowI
 
   public:
     std::unique_ptr<Surface> surface;
-    std::unique_ptr<SwapChain> swapchain;
+    std::shared_ptr<SwapChain> swapchain;
 
   public:
     static int init();

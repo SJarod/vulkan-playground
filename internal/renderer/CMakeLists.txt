@@ -4,6 +4,9 @@ add_library(${component} STATIC "")
 
 target_sources(${component}
     PRIVATE
+    renderstate.hpp
+    renderstate.cpp
+    
     renderer.hpp
     renderer.cpp
 

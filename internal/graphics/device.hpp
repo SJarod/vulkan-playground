@@ -53,4 +53,15 @@ class Device
 
     VkCommandBuffer cmdBeginOneTimeSubmit() const;
     void cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const;
+
+  public:
+    [[nodiscard]] const VkDevice &getHandle() const
+    {
+        return *handle;
+    }
+
+    [[nodiscard]] const VkCommandPool &getCommandPool() const
+    {
+        return commandPool;
+    }
 };

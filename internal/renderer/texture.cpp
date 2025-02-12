@@ -21,13 +21,18 @@ Texture::Texture(const std::shared_ptr<Device> device, uint32_t width, uint32_t 
                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    ImageLayoutTransitionBuilder builder;
-    ImageLayoutTransitionDirector director(*image);
-    director.build<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(builder);
-    image->transitionImageLayout(*builder.build());
+    ImageLayoutTransitionBuilder iltb;
+    ImageLayoutTransitionDirector iltd;
+
+    iltd.createBuilder<VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL>(iltb);
+    iltb.setImage(*image);
+    image->transitionImageLayout(*iltb.build());
+
     image->copyBufferToImage(stagingBuffer.handle);
-    director.build<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(builder);
-    image->transitionImageLayout(*builder.build());
+
+    iltd.createBuilder<VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>(iltb);
+    iltb.setImage(*image);
+    image->transitionImageLayout(*iltb.build());
 
     // image view
 
