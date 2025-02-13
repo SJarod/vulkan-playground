@@ -19,21 +19,21 @@ void Mesh::createVertexBuffer()
 {
     // vertex buffer
 
-    size_t vertexBufferSize = sizeof(Vertex) * vertices.size();
+    size_t vertexBufferSize = sizeof(Vertex) * m_vertices.size();
 
     std::unique_ptr<Buffer> stagingBuffer =
-        std::make_unique<Buffer>(*device, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        std::make_unique<Buffer>(m_device, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    stagingBuffer->copyDataToMemory(vertices.data());
+    stagingBuffer->copyDataToMemory(m_vertices.data());
 
-    vertexBuffer = std::make_unique<Buffer>(*device, vertexBufferSize,
-                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    m_vertexBuffer = std::make_unique<Buffer>(m_device, vertexBufferSize,
+                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     // transfer from staging buffer to vertex buffer
 
-    vertexBuffer->transferBufferToBuffer(stagingBuffer->handle);
+    m_vertexBuffer->transferBufferToBuffer(stagingBuffer->getHandle());
     stagingBuffer.reset();
 }
 
@@ -41,25 +41,25 @@ void Mesh::createIndexBuffer()
 {
     // index buffer
 
-    size_t indexBufferSize = sizeof(uint16_t) * indices.size();
+    size_t indexBufferSize = sizeof(uint16_t) * m_indices.size();
 
     std::unique_ptr<Buffer> stagingBuffer =
-        std::make_unique<Buffer>(*device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        std::make_unique<Buffer>(m_device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    stagingBuffer->copyDataToMemory(indices.data());
+    stagingBuffer->copyDataToMemory(m_indices.data());
 
-    indexBuffer = std::make_unique<Buffer>(*device, indexBufferSize,
-                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    m_indexBuffer = std::make_unique<Buffer>(m_device, indexBufferSize,
+                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    indexBuffer->transferBufferToBuffer(stagingBuffer->handle);
+    m_indexBuffer->transferBufferToBuffer(stagingBuffer->getHandle());
     stagingBuffer.reset();
 }
 
-Mesh::Mesh(const std::shared_ptr<Device> device, const std::vector<Vertex> &vertices,
+Mesh::Mesh(const std::weak_ptr<Device> device, const std::vector<Vertex> &vertices,
            const std::vector<uint16_t> &indices)
-    : device(device), vertices(vertices), indices(indices)
+    : m_device(device), m_vertices(vertices), m_indices(indices)
 {
     createVertexBuffer();
     createIndexBuffer();
@@ -75,7 +75,7 @@ void Mesh::setVerticesFromAiScene(const aiScene *pScene)
         if (mesh->HasTextureCoords(0))
             pUV = mesh->mTextureCoords[0][i];
 
-        vertices.emplace_back(Vertex({pPos.x, pPos.y, pPos.z}, {0.f, 0.f, 0.f, 1.f}, {pUV.x, pUV.y}));
+        m_vertices.emplace_back(Vertex({pPos.x, pPos.y, pPos.z}, {0.f, 0.f, 0.f, 1.f}, {pUV.x, pUV.y}));
     }
 }
 void Mesh::setIndicesFromAiScene(const aiScene *pScene)
@@ -85,14 +85,14 @@ void Mesh::setIndicesFromAiScene(const aiScene *pScene)
     {
         const aiFace &Face = mesh->mFaces[i];
         assert(Face.mNumIndices == 3);
-        indices.push_back(Face.mIndices[0]);
-        indices.push_back(Face.mIndices[1]);
-        indices.push_back(Face.mIndices[2]);
+        m_indices.push_back(Face.mIndices[0]);
+        m_indices.push_back(Face.mIndices[1]);
+        m_indices.push_back(Face.mIndices[2]);
     }
 }
 
-Mesh::Mesh(const std::shared_ptr<Device> device, const char *modelFilename, const char *textureFilename)
-    : device(device)
+Mesh::Mesh(const std::weak_ptr<Device> device, const char *modelFilename, const char *textureFilename)
+    : m_device(device)
 {
     Assimp::Importer importer;
     const aiScene *pScene =
@@ -118,14 +118,14 @@ Mesh::Mesh(const std::shared_ptr<Device> device, const char *modelFilename, cons
         return;
     }
 
-    texture = std::make_unique<Texture>(device, texWidth, texHeight, textureData, VK_FORMAT_R8G8B8A8_SRGB,
-                                        VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
+    m_texture = std::make_unique<Texture>(device, texWidth, texHeight, textureData, VK_FORMAT_R8G8B8A8_SRGB,
+                                          VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST);
 
     stbi_image_free(textureData);
 }
 
 Mesh::~Mesh()
 {
-    indexBuffer.reset();
-    vertexBuffer.reset();
+    m_indexBuffer.reset();
+    m_vertexBuffer.reset();
 }

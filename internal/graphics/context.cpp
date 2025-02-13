@@ -19,11 +19,6 @@ void Context::addInstanceExtension(const char *extension)
     m_instanceExtensions.push_back(extension);
 }
 
-void Context::addDeviceExtension(const char *extension)
-{
-    m_deviceExtensions.push_back(extension);
-}
-
 std::vector<VkPhysicalDevice> Context::getAvailablePhysicalDevices() const
 {
     uint32_t count;

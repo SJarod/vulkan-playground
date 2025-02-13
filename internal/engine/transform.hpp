@@ -11,5 +11,5 @@ class Transform
     glm::vec3 scale = glm::vec3(1.f);
 
   public:
-    glm::mat4 getTransformMatrix() const;
+    [[nodiscard]] glm::mat4 getTransformMatrix() const;
 };

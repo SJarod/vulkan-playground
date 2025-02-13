@@ -12,31 +12,32 @@ class Camera;
 class Mesh;
 class MeshRenderStateBuilder;
 
-class RenderState
+class RenderStateABC
 {
   protected:
-    std::weak_ptr<Device> device;
+    std::weak_ptr<Device> m_device;
 
-    std::shared_ptr<Pipeline> pipeline;
+    std::shared_ptr<Pipeline> m_pipeline;
 
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<std::unique_ptr<Buffer>> uniformBuffers;
-    std::vector<void *> uniformBuffersMapped;
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<std::unique_ptr<Buffer>> m_uniformBuffers;
+    std::vector<void *> m_uniformBuffersMapped;
 
-    RenderState() = default;
+    RenderStateABC() = default;
 
   public:
-    virtual ~RenderState();
+    virtual ~RenderStateABC();
 
     virtual void updateUniformBuffers(uint32_t imageIndex, const Camera &camera);
 
     virtual void recordBackBufferDescriptorSetsCommands(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
     virtual void recordBackBufferDrawObjectCommands(VkCommandBuffer &commandBuffer) = 0;
 
+  public:
     [[nodiscard]] std::shared_ptr<Pipeline> getPipeline() const
     {
-        return pipeline;
+        return m_pipeline;
     }
 };
 
@@ -49,9 +50,9 @@ class RenderStateBuilderI
     virtual void setPipeline(std::shared_ptr<Pipeline> pipeline) = 0;
     virtual void addPoolSize(VkDescriptorType poolSizeType) = 0;
     virtual void setFrameInFlightCount(uint32_t a) = 0;
-    virtual void setTexture(Texture *texture) = 0;
+    virtual void setTexture(const Texture *texture) = 0;
 
-    virtual std::unique_ptr<RenderState> build() = 0;
+    virtual std::unique_ptr<RenderStateABC> build() = 0;
 };
 
 class RenderStateDirector
@@ -60,12 +61,12 @@ class RenderStateDirector
     void createUniformAndSamplerRenderStateBuilder(RenderStateBuilderI &builder);
 };
 
-class MeshRenderState : public RenderState
+class MeshRenderState : public RenderStateABC
 {
     friend MeshRenderStateBuilder;
 
-  public:
-    std::weak_ptr<Mesh> mesh;
+  private:
+    std::weak_ptr<Mesh> m_mesh;
 
   public:
     void recordBackBufferDrawObjectCommands(VkCommandBuffer &commandBuffer) override;
@@ -74,14 +75,14 @@ class MeshRenderState : public RenderState
 class MeshRenderStateBuilder : public RenderStateBuilderI
 {
   private:
-    std::unique_ptr<MeshRenderState> product;
+    std::unique_ptr<MeshRenderState> m_product;
 
-    std::weak_ptr<Device> device;
+    std::weak_ptr<Device> m_device;
 
-    std::vector<VkDescriptorPoolSize> poolSizes;
-    uint32_t frameInFlightCount;
+    std::vector<VkDescriptorPoolSize> m_poolSizes;
+    uint32_t m_frameInFlightCount;
 
-    Texture *texture;
+    const Texture *m_texture;
 
   public:
     MeshRenderStateBuilder()
@@ -91,29 +92,29 @@ class MeshRenderStateBuilder : public RenderStateBuilderI
 
     void restart() override
     {
-        product = std::unique_ptr<MeshRenderState>(new MeshRenderState);
+        m_product = std::unique_ptr<MeshRenderState>(new MeshRenderState);
     }
 
     void setDevice(std::weak_ptr<Device> device) override
     {
-        this->device = device;
-        product->device = device;
+        m_device = device;
+        m_product->m_device = device;
     }
     void setPipeline(std::shared_ptr<Pipeline> pipeline) override;
     void addPoolSize(VkDescriptorType poolSizeType) override;
     void setFrameInFlightCount(uint32_t a) override
     {
-        frameInFlightCount = a;
+        m_frameInFlightCount = a;
     }
-    void setTexture(Texture *texture) override
+    void setTexture(const Texture *texture) override
     {
-        this->texture = texture;
+        m_texture = texture;
     }
 
     void setMesh(std::shared_ptr<Mesh> mesh)
     {
-        product->mesh = mesh;
+        m_product->m_mesh = mesh;
     }
 
-    std::unique_ptr<RenderState> build() override;
+    std::unique_ptr<RenderStateABC> build() override;
 };

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
+
 #include <GLFW/glfw3.h>
 
 #include "graphics/surface.hpp"
@@ -11,6 +12,13 @@
 
 class WindowI
 {
+    virtual void makeContextCurrent() = 0;
+    virtual bool shouldClose() = 0;
+
+    virtual void swapBuffers() = 0;
+    virtual void pollEvents() = 0;
+
+    virtual const std::vector<const char *> getRequiredExtensions() const = 0;
 };
 
 class WindowGLFW : public WindowI
@@ -18,34 +26,57 @@ class WindowGLFW : public WindowI
   private:
     GLFWwindow *m_handle;
 
-    int width = 1366;
-    int height = 768;
+    int m_width = 1366;
+    int m_height = 768;
 
-  public:
-    std::unique_ptr<Surface> surface;
-    std::shared_ptr<SwapChain> swapchain;
-
-  public:
-    static int init();
-    static void terminate();
+    std::unique_ptr<Surface> m_surface;
+    std::unique_ptr<SwapChain> m_swapchain;
 
   public:
     WindowGLFW();
     ~WindowGLFW();
 
-    void makeContextCurrent();
-    bool shouldClose();
+    WindowGLFW(const WindowGLFW &) = delete;
+    WindowGLFW &operator=(const WindowGLFW &) = delete;
+    WindowGLFW(WindowGLFW &&) = delete;
+    WindowGLFW &operator=(WindowGLFW &&) = delete;
 
-    void swapBuffers();
-    void pollEvents();
+    static int init();
+    static void terminate();
 
-    const std::vector<const char *> getRequiredExtensions() const;
+    void makeContextCurrent() override;
+    bool shouldClose() override;
 
-    inline GLFWwindow *getHandle() const
+    void swapBuffers() override;
+    void pollEvents() override;
+
+    const std::vector<const char *> getRequiredExtensions() const override;
+
+    static VkResult createSurfacePredicate(VkInstance instance, void *windowHandle, VkAllocationCallbacks *allocator,
+                                           VkSurfaceKHR *surface);
+
+  public:
+    [[nodiscard]] inline GLFWwindow *getHandle() const
     {
         return m_handle;
     }
 
-    static VkResult createSurfacePredicate(VkInstance instance, void *windowHandle, VkAllocationCallbacks *allocator,
-                                           VkSurfaceKHR *surface);
+    [[nodiscard]] inline const Surface *getSurface() const
+    {
+        return m_surface.get();
+    }
+    [[nodiscard]] inline const SwapChain *getSwapChain() const
+    {
+        return m_swapchain.get();
+    }
+
+  public:
+    void setSurface(std::unique_ptr<Surface> surface)
+    {
+        m_surface = std::move(surface);
+    }
+    void setSwapChain(std::unique_ptr<SwapChain> swapchain)
+    {
+        m_swapchain = std::move(swapchain);
+    }
 };

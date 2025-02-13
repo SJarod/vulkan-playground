@@ -19,8 +19,8 @@ target_sources(${component}
     swapchain.hpp
     swapchain.cpp
 
-    renderpass.hpp
-    renderpass.cpp
+    render_pass.hpp
+    render_pass.cpp
 
     pipeline.hpp
     pipeline.cpp

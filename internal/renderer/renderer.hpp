@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "graphics/renderpass.hpp"
+#include "graphics/render_pass.hpp"
 
 class Device;
 class SwapChain;
@@ -11,7 +11,7 @@ class Mesh;
 class Texture;
 class Buffer;
 class Camera;
-class RenderState;
+class RenderStateABC;
 
 struct BackBufferT
 {
@@ -29,23 +29,27 @@ class Renderer
     friend RendererBuilder;
 
   private:
-    std::weak_ptr<Device> device;
-    std::weak_ptr<SwapChain> swapchain;
+    std::weak_ptr<Device> m_device;
+    const SwapChain *m_swapchain;
 
-  public:
-    int bufferingType = 2;
+    int m_bufferingType = 2;
 
-    std::unique_ptr<RenderPass> renderPass;
+    std::unique_ptr<RenderPass> m_renderPass;
 
-    std::vector<std::shared_ptr<RenderState>> renderStates;
+    std::vector<std::shared_ptr<RenderStateABC>> m_renderStates;
 
-    int backBufferIndex = 0;
-    std::vector<BackBufferT> backBuffers;
+    int m_backBufferIndex = 0;
+    std::vector<BackBufferT> m_backBuffers;
 
     Renderer() = default;
 
   public:
     ~Renderer();
+
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
+    Renderer(Renderer &&) = delete;
+    Renderer &operator=(Renderer &&) = delete;
 
     void registerRenderState(const std::shared_ptr<Mesh> mesh);
 
@@ -62,15 +66,15 @@ class Renderer
 class RendererBuilder
 {
   private:
-    std::unique_ptr<Renderer> product;
+    std::unique_ptr<Renderer> m_product;
 
-    std::weak_ptr<Device> device;
-    std::weak_ptr<SwapChain> swapchain;
+    std::weak_ptr<Device> m_device;
+    const SwapChain *m_swapchain;
 
     void restart()
     {
-        product = std::unique_ptr<Renderer>(new Renderer);
-        product->bufferingType = 2U;
+        m_product = std::unique_ptr<Renderer>(new Renderer);
+        m_product->m_bufferingType = 2U;
     }
 
   public:
@@ -81,17 +85,17 @@ class RendererBuilder
 
     void setDevice(std::weak_ptr<Device> device)
     {
-        this->device = device;
-        product->device = device;
+        m_device = device;
+        m_product->m_device = device;
     }
-    void setSwapChain(std::weak_ptr<SwapChain> swapchain)
+    void setSwapChain(const SwapChain *swapchain)
     {
-        this->swapchain = swapchain;
-        product->swapchain = swapchain;
+        m_swapchain = swapchain;
+        m_product->m_swapchain = swapchain;
     }
     void setBufferingType(uint32_t type)
     {
-        product->bufferingType = type;
+        m_product->m_bufferingType = type;
     }
 
     std::unique_ptr<Renderer> build();

@@ -18,15 +18,15 @@ void WindowGLFW::terminate()
 WindowGLFW::WindowGLFW()
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_handle = glfwCreateWindow(width, height, "Playground", NULL, NULL);
+    m_handle = glfwCreateWindow(m_width, m_height, "Playground", NULL, NULL);
     if (!m_handle)
         throw;
 }
 
 WindowGLFW::~WindowGLFW()
 {
-    swapchain.reset();
-    surface.reset();
+    m_swapchain.reset();
+    m_surface.reset();
 }
 
 void WindowGLFW::makeContextCurrent()

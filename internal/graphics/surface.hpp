@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan.h>
 
-
 typedef VkResult (*PFN_CreateSurfacePredicate)(VkInstance, void *, VkAllocationCallbacks *, VkSurfaceKHR *);
 
 class Context;
@@ -10,17 +9,21 @@ class Context;
 class Surface
 {
   private:
-    const Context &cx;
+    std::weak_ptr<Context> m_cx;
 
-  private:
-    VkSurfaceKHR handle;
+    VkSurfaceKHR m_handle;
 
   public:
-    Surface(const Context &cx, PFN_CreateSurfacePredicate predicate, void* windowHandle);
+    Surface(std::weak_ptr<Context> cx, PFN_CreateSurfacePredicate predicate, void *windowHandle);
     ~Surface();
+
+    Surface(const Surface&) = delete;
+    Surface& operator=(const Surface&) = delete;
+    Surface(Surface&&) = delete;
+    Surface& operator=(Surface&&) = delete;
 
     inline VkSurfaceKHR getHandle() const
     {
-        return handle;
+        return m_handle;
     }
 };

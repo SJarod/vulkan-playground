@@ -2,15 +2,15 @@
 
 #include "surface.hpp"
 
-Surface::Surface(const Context &cx, PFN_CreateSurfacePredicate predicate, void *windowHandle) : cx(cx), handle(handle)
+Surface::Surface(std::weak_ptr<Context> cx, PFN_CreateSurfacePredicate predicate, void *windowHandle) : m_cx(cx)
 {
-    VkResult result = predicate(cx.getInstanceHandle(), windowHandle, nullptr, &handle);
+    VkResult result = predicate(m_cx.lock()->getInstanceHandle(), windowHandle, nullptr, &m_handle);
     if (result != VK_SUCCESS)
         std::cerr << "Failed to create window surface : " << result << std::endl;
 }
 
 Surface::~Surface()
 {
-    if (handle)
-        vkDestroySurfaceKHR(cx.getInstanceHandle(), handle, nullptr);
+    if (m_handle)
+        vkDestroySurfaceKHR(m_cx.lock()->getInstanceHandle(), m_handle, nullptr);
 }

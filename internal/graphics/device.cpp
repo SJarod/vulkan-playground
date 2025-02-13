@@ -8,32 +8,36 @@
 #include "device.hpp"
 
 Device::Device(const std::shared_ptr<Context> cx, VkPhysicalDevice base, const Surface *surface)
-    : cx(cx), surface(surface)
+    : m_cx(cx), m_surface(surface)
 {
-    physicalHandle = base;
-    vkGetPhysicalDeviceFeatures(base, &features);
-    vkGetPhysicalDeviceProperties(base, &props);
-    graphicsFamilyIndex = findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-    if (this->surface)
-        presentFamilyIndex = findPresentQueueFamilyIndex();
+    m_physicalHandle = base;
+    vkGetPhysicalDeviceFeatures(base, &m_features);
+    vkGetPhysicalDeviceProperties(base, &m_props);
+    m_graphicsFamilyIndex = findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+    if (m_surface)
+        m_presentFamilyIndex = findPresentQueueFamilyIndex();
+}
+void Device::addDeviceExtension(const char *extension)
+{
+    m_deviceExtensions.push_back(extension);
 }
 
 Device::~Device()
 {
-    vkDestroyCommandPool(*handle, commandPool, nullptr);
-    vkDestroyCommandPool(*handle, commandPoolTransient, nullptr);
+    vkDestroyCommandPool(m_handle, m_commandPool, nullptr);
+    vkDestroyCommandPool(m_handle, m_commandPoolTransient, nullptr);
 
-    vkDestroyDevice(*handle, nullptr);
+    vkDestroyDevice(m_handle, nullptr);
 }
 
 void Device::initLogicalDevice()
 {
     std::set<uint32_t> uniqueQueueFamilies;
 
-    if (graphicsFamilyIndex.has_value())
-        uniqueQueueFamilies.insert(graphicsFamilyIndex.value());
-    if (presentFamilyIndex.has_value())
-        uniqueQueueFamilies.insert(presentFamilyIndex.value());
+    if (m_graphicsFamilyIndex.has_value())
+        uniqueQueueFamilies.insert(m_graphicsFamilyIndex.value());
+    if (m_presentFamilyIndex.has_value())
+        uniqueQueueFamilies.insert(m_presentFamilyIndex.value());
 
     float queuePriority = 1.f;
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -46,43 +50,40 @@ void Device::initLogicalDevice()
         queueCreateInfos.emplace_back(queueCreateInfo);
     }
 
+    auto contextPtr = m_cx.lock();
     VkDeviceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
-        .enabledLayerCount = static_cast<uint32_t>(cx->getLayerCount()),
-        .ppEnabledLayerNames = cx->getLayers(),
-        .enabledExtensionCount = static_cast<uint32_t>(cx->getDeviceExtensionCount()),
-        .ppEnabledExtensionNames = cx->getDeviceExtensions(),
-        .pEnabledFeatures = &features,
+        .enabledLayerCount = static_cast<uint32_t>(contextPtr->getLayerCount()),
+        .ppEnabledLayerNames = contextPtr->getLayers(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size()),
+        .ppEnabledExtensionNames = m_deviceExtensions.data(),
+        .pEnabledFeatures = &m_features,
     };
 
     // create device
-    VkDevice handle;
-    if (vkCreateDevice(physicalHandle, &createInfo, nullptr, &handle) != VK_SUCCESS)
+    VkResult res = vkCreateDevice(m_physicalHandle, &createInfo, nullptr, &m_handle);
+    if (res != VK_SUCCESS)
     {
-        std::cerr << "Failed to create logical device" << std::endl;
+        std::cerr << "Failed to create logical device : " << res << std::endl;
         return;
-    }
-    else
-    {
-        this->handle = std::make_unique<VkDevice>(handle);
     }
 
     // queue
 
-    vkGetDeviceQueue(handle, graphicsFamilyIndex.value(), 0, &graphicsQueue);
-    if (surface)
-        vkGetDeviceQueue(handle, presentFamilyIndex.value(), 0, &presentQueue);
+    vkGetDeviceQueue(m_handle, m_graphicsFamilyIndex.value(), 0, &m_graphicsQueue);
+    if (m_surface)
+        vkGetDeviceQueue(m_handle, m_presentFamilyIndex.value(), 0, &m_presentQueue);
 
     // command pools
 
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = graphicsFamilyIndex.value(),
+        .queueFamilyIndex = m_graphicsFamilyIndex.value(),
     };
-    VkResult res = vkCreateCommandPool(handle, &commandPoolCreateInfo, nullptr, &commandPool);
+    res = vkCreateCommandPool(m_handle, &commandPoolCreateInfo, nullptr, &m_commandPool);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to create command pool : " << res << std::endl;
@@ -92,9 +93,9 @@ void Device::initLogicalDevice()
     VkCommandPoolCreateInfo commandPoolTransientCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = graphicsFamilyIndex.value(),
+        .queueFamilyIndex = m_graphicsFamilyIndex.value(),
     };
-    res = vkCreateCommandPool(handle, &commandPoolTransientCreateInfo, nullptr, &commandPoolTransient);
+    res = vkCreateCommandPool(m_handle, &commandPoolTransientCreateInfo, nullptr, &m_commandPoolTransient);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to create transient command pool : " << res << std::endl;
@@ -106,7 +107,7 @@ std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements require
                                                     VkMemoryPropertyFlags properties) const
 {
     VkPhysicalDeviceMemoryProperties memProp;
-    vkGetPhysicalDeviceMemoryProperties(physicalHandle, &memProp);
+    vkGetPhysicalDeviceMemoryProperties(m_physicalHandle, &memProp);
 
     for (uint32_t i = 0; i < memProp.memoryTypeCount; ++i)
     {
@@ -123,9 +124,9 @@ std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements require
 std::vector<VkQueueFamilyProperties> Device::getQueueFamilyProperties() const
 {
     uint32_t queueFamilyPropertiesCount;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalHandle, &queueFamilyPropertiesCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalHandle, &queueFamilyPropertiesCount, nullptr);
     std::vector<VkQueueFamilyProperties> out(queueFamilyPropertiesCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalHandle, &queueFamilyPropertiesCount, out.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalHandle, &queueFamilyPropertiesCount, out.data());
     return out;
 }
 
@@ -141,14 +142,14 @@ std::optional<uint32_t> Device::findQueueFamilyIndex(const VkQueueFlags &capabil
 }
 std::optional<uint32_t> Device::findPresentQueueFamilyIndex() const
 {
-    if (!surface)
+    if (!m_surface)
         return std::optional<uint32_t>();
 
     auto props = getQueueFamilyProperties();
     for (uint32_t i = 0; i < props.size(); ++i)
     {
         VkBool32 supported;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalHandle, i, surface->getHandle(), &supported);
+        vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalHandle, i, m_surface->getHandle(), &supported);
         if (supported)
             return std::optional<uint32_t>(i);
     }
@@ -159,12 +160,12 @@ VkCommandBuffer Device::cmdBeginOneTimeSubmit() const
 {
     VkCommandBufferAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = commandPoolTransient,
+        .commandPool = m_commandPoolTransient,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = 1,
     };
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(*handle, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(m_handle, &allocInfo, &commandBuffer);
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -184,10 +185,10 @@ void Device::cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const
         .pCommandBuffers = &commandBuffer,
     };
 
-    VkResult res = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    VkResult res = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     if (res != VK_SUCCESS)
         std::cerr << "Failed to submit one time command buffer : " << res << std::endl;
 
-    vkQueueWaitIdle(graphicsQueue);
-    vkFreeCommandBuffers(*handle, commandPoolTransient, 1, &commandBuffer);
+    vkQueueWaitIdle(m_graphicsQueue);
+    vkFreeCommandBuffers(m_handle, m_commandPoolTransient, 1, &commandBuffer);
 }

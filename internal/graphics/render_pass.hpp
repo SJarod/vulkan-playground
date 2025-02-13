@@ -13,10 +13,10 @@ class RenderPass
     friend RenderPassBuilder;
 
   private:
-    std::weak_ptr<Device> device;
+    std::weak_ptr<Device> m_device;
 
-    VkRenderPass handle;
-    std::vector<VkFramebuffer> framebuffers;
+    VkRenderPass m_handle;
+    std::vector<VkFramebuffer> m_framebuffers;
 
     RenderPass() = default;
 
@@ -31,39 +31,39 @@ class RenderPass
   public:
     [[nodiscard]] const VkRenderPass &getHandle() const
     {
-        return handle;
+        return m_handle;
     }
 
     [[nodiscard]] const VkFramebuffer &getFramebuffer(uint32_t index) const
     {
-        return framebuffers[index];
+        return m_framebuffers[index];
     }
 };
 
 class RenderPassBuilder
 {
   private:
-    std::unique_ptr<RenderPass> product;
+    std::unique_ptr<RenderPass> m_product;
 
-    std::vector<VkAttachmentDescription> attachments;
+    std::vector<VkAttachmentDescription> m_attachments;
 
-    std::vector<VkAttachmentReference> colorAttachmentReferences;
-    std::vector<VkAttachmentReference> depthAttachmentReferences;
+    std::vector<VkAttachmentReference> m_colorAttachmentReferences;
+    std::vector<VkAttachmentReference> m_depthAttachmentReferences;
 
-    VkSubpassDescription subpass = {};
-    VkSubpassDependency subpassDependency = {};
+    VkSubpassDescription m_subpass = {};
+    VkSubpassDependency m_subpassDependency = {};
 
-    std::weak_ptr<Device> device;
-    std::weak_ptr<SwapChain> swapchain;
+    std::weak_ptr<Device> m_device;
+    const SwapChain* m_swapchain;
 
     void restart()
     {
-        product = std::unique_ptr<RenderPass>(new RenderPass);
+        m_product = std::unique_ptr<RenderPass>(new RenderPass);
 
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        subpassDependency.dstSubpass = 0;
-        subpassDependency.srcAccessMask = 0;
+        m_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        m_subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        m_subpassDependency.dstSubpass = 0;
+        m_subpassDependency.srcAccessMask = 0;
     }
 
   public:
@@ -86,16 +86,16 @@ class RenderPassBuilder
         };
 
         VkAttachmentReference colorAttachmentRef = {
-            .attachment = static_cast<uint32_t>(attachments.size()),
+            .attachment = static_cast<uint32_t>(m_attachments.size()),
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         };
 
-        attachments.emplace_back(colorAttachment);
-        colorAttachmentReferences.emplace_back(colorAttachmentRef);
+        m_attachments.emplace_back(colorAttachment);
+        m_colorAttachmentReferences.emplace_back(colorAttachmentRef);
 
-        subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        m_subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        m_subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        m_subpassDependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     }
     void addDepthAttachment(VkFormat depthImageFormat)
     {
@@ -111,26 +111,26 @@ class RenderPassBuilder
         };
 
         VkAttachmentReference depthAttachmentRef = {
-            .attachment = static_cast<uint32_t>(attachments.size()),
+            .attachment = static_cast<uint32_t>(m_attachments.size()),
             .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         };
 
-        attachments.emplace_back(depthAttachment);
-        depthAttachmentReferences.emplace_back(depthAttachmentRef);
+        m_attachments.emplace_back(depthAttachment);
+        m_depthAttachmentReferences.emplace_back(depthAttachmentRef);
 
-        subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        m_subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        m_subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        m_subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     }
 
     void setDevice(std::weak_ptr<Device> device)
     {
-        this->device = device;
-        product->device = device;
+        m_device = device;
+        m_product->m_device = device;
     }
-    void setSwapChain(std::weak_ptr<SwapChain> swapchain)
+    void setSwapChain(const SwapChain *swapchain)
     {
-        this->swapchain = swapchain;
+        m_swapchain = swapchain;
     }
 
     std::unique_ptr<RenderPass> build();

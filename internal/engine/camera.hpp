@@ -6,22 +6,43 @@
 
 class Camera
 {
+  private:
+    Transform m_transform;
+
+    float m_yFov = 45.f;
+    float m_aspectRatio = 16.f / 9.f;
+    float m_near = 0.1f;
+    float m_far = 1000.f;
+
+    float m_sensitivity = 0.8f;
+
+    float m_speed = 1.f;
+
+    bool m_bYFlip = true;
+
   public:
-    Transform transform;
-
-    float yFov = 45.f;
-    float aspectRatio = 16.f / 9.f;
-    float near = 0.1f;
-    float far = 1000.f;
-
-    float sensitivity = 0.8f;
-
-    float speed = 1.f;
-
-    glm::mat4 proj;
+    [[nodiscard]] glm::mat4 getViewMatrix() const;
+    [[nodiscard]] glm::mat4 getProjectionMatrix() const;
+    [[nodiscard]] inline const float &getSensitivity() const
+    {
+        return m_sensitivity;
+    }
+    [[nodiscard]] const Transform &getTransform() const
+    {
+        return m_transform;
+    }
+    [[nodiscard]] const float &getSpeed() const
+    {
+        return m_speed;
+    }
 
   public:
-    Camera();
-
-    glm::mat4 getViewMatrix() const;
+    void setYFlip(const bool bFlip)
+    {
+        m_bYFlip = bFlip;
+    }
+    void setTransform(const Transform &transform)
+    {
+        m_transform = transform;
+    }
 };

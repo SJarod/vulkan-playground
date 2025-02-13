@@ -6,10 +6,13 @@
 
 #include "image.hpp"
 
-Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
+Image::Image(std::weak_ptr<Device> device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
              VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
-    : device(device), format(format), width(width), height(height), aspectFlags(aspectFlags)
+    : m_device(device), m_format(format), m_width(width), m_height(height), m_aspectFlags(aspectFlags)
 {
+    auto devicePtr = m_device.lock();
+    auto deviceHandle = devicePtr->getHandle();
+
     VkImageCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .flags = 0,
@@ -30,7 +33,7 @@ Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t hei
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
-    VkResult res = vkCreateImage(*device.handle, &createInfo, nullptr, &handle);
+    VkResult res = vkCreateImage(deviceHandle, &createInfo, nullptr, &m_handle);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to create image : " << res << std::endl;
@@ -38,8 +41,8 @@ Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t hei
     }
 
     VkMemoryRequirements memReq;
-    vkGetImageMemoryRequirements(*device.handle, handle, &memReq);
-    std::optional<uint32_t> memoryTypeIndex = device.findMemoryTypeIndex(memReq, properties);
+    vkGetImageMemoryRequirements(deviceHandle, m_handle, &memReq);
+    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, properties);
 
     VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -47,35 +50,38 @@ Image::Image(const Device &device, VkFormat format, uint32_t width, uint32_t hei
         .memoryTypeIndex = memoryTypeIndex.value(),
     };
 
-    res = vkAllocateMemory(*device.handle, &allocInfo, nullptr, &memory);
+    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_memory);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to allocate memory : " << res << std::endl;
         return;
     }
 
-    vkBindImageMemory(*device.handle, handle, memory, 0);
+    vkBindImageMemory(deviceHandle, m_handle, m_memory, 0);
 }
 
 Image::~Image()
 {
-    vkFreeMemory(*device.handle, memory, nullptr);
-    vkDestroyImage(*device.handle, handle, nullptr);
+    auto deviceHandle = m_device.lock()->getHandle();
+    vkFreeMemory(deviceHandle, m_memory, nullptr);
+    vkDestroyImage(deviceHandle, m_handle, nullptr);
 }
 
 void Image::transitionImageLayout(ImageLayoutTransition transition)
 {
-    VkCommandBuffer commandBuffer = device.cmdBeginOneTimeSubmit();
+    auto devicePtr = m_device.lock();
+    VkCommandBuffer commandBuffer = devicePtr->cmdBeginOneTimeSubmit();
 
     vkCmdPipelineBarrier(commandBuffer, transition.srcStageMask, transition.dstStageMask, 0, 0, nullptr, 0, nullptr, 1,
                          &transition.barrier);
 
-    device.cmdEndOneTimeSubmit(commandBuffer);
+    devicePtr->cmdEndOneTimeSubmit(commandBuffer);
 }
 
 void Image::copyBufferToImage(VkBuffer buffer)
 {
-    VkCommandBuffer commandBuffer = device.cmdBeginOneTimeSubmit();
+    auto devicePtr = m_device.lock();
+    VkCommandBuffer commandBuffer = devicePtr->cmdBeginOneTimeSubmit();
 
     VkBufferImageCopy region = {
         .bufferOffset = 0,
@@ -83,7 +89,7 @@ void Image::copyBufferToImage(VkBuffer buffer)
         .bufferImageHeight = 0,
         .imageSubresource =
             {
-                .aspectMask = aspectFlags,
+                .aspectMask = m_aspectFlags,
                 .mipLevel = 0,
                 .baseArrayLayer = 0,
                 .layerCount = 1,
@@ -96,24 +102,26 @@ void Image::copyBufferToImage(VkBuffer buffer)
             },
         .imageExtent =
             {
-                .width = width,
-                .height = height,
+                .width = m_width,
+                .height = m_height,
                 .depth = 1,
             },
     };
 
-    vkCmdCopyBufferToImage(commandBuffer, buffer, handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(commandBuffer, buffer, m_handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    device.cmdEndOneTimeSubmit(commandBuffer);
+    devicePtr->cmdEndOneTimeSubmit(commandBuffer);
 }
 
 VkImageView Image::createImageView()
 {
+    auto deviceHandle = m_device.lock()->getHandle();
+
     VkImageViewCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image = handle,
+        .image = m_handle,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = format,
+        .format = m_format,
         .components =
             {
                 .r = VK_COMPONENT_SWIZZLE_R,
@@ -123,7 +131,7 @@ VkImageView Image::createImageView()
             },
         .subresourceRange =
             {
-                .aspectMask = aspectFlags,
+                .aspectMask = m_aspectFlags,
                 .baseMipLevel = 0,
                 .levelCount = 1,
                 .baseArrayLayer = 0,
@@ -132,7 +140,7 @@ VkImageView Image::createImageView()
     };
 
     VkImageView imageView;
-    VkResult res = vkCreateImageView(*device.handle, &createInfo, nullptr, &imageView);
+    VkResult res = vkCreateImageView(deviceHandle, &createInfo, nullptr, &imageView);
     if (res != VK_SUCCESS)
         std::cerr << "Failed to create image view : " << res << std::endl;
 
@@ -141,22 +149,22 @@ VkImageView Image::createImageView()
 
 void ImageLayoutTransitionBuilder::restart()
 {
-    product = std::unique_ptr<ImageLayoutTransition>(new ImageLayoutTransition);
-    product->barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    product->barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    product->barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    product->barrier.subresourceRange.baseMipLevel = 0;
-    product->barrier.subresourceRange.levelCount = 1;
-    product->barrier.subresourceRange.baseArrayLayer = 0;
-    product->barrier.subresourceRange.layerCount = 1;
+    m_product = std::unique_ptr<ImageLayoutTransition>(new ImageLayoutTransition);
+    m_product->barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    m_product->barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    m_product->barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    m_product->barrier.subresourceRange.baseMipLevel = 0;
+    m_product->barrier.subresourceRange.levelCount = 1;
+    m_product->barrier.subresourceRange.baseArrayLayer = 0;
+    m_product->barrier.subresourceRange.layerCount = 1;
 }
 
 std::unique_ptr<ImageLayoutTransition> ImageLayoutTransitionBuilder::build()
 {
     // image must be set using setImage()
-    assert(product->barrier.image);
+    assert(m_product->barrier.image);
 
-    auto result = std::move(product);
+    auto result = std::move(m_product);
     restart();
     return result;
 }

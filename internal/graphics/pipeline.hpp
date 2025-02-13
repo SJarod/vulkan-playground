@@ -14,13 +14,13 @@ class Pipeline
     friend PipelineBuilder;
 
   private:
-    std::weak_ptr<Device> device;
+    std::weak_ptr<Device> m_device;
 
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline handle;
+    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_handle;
 
-    VkExtent2D extent;
+    VkExtent2D m_extent;
 
     Pipeline() = default;
 
@@ -32,83 +32,83 @@ class Pipeline
   public:
     [[nodiscard]] const VkPipelineLayout &getPipelineLayout() const
     {
-        return pipelineLayout;
+        return m_pipelineLayout;
     }
     [[nodiscard]] const VkDescriptorSetLayout &getDescriptorSetLayout() const
     {
-        return descriptorSetLayout;
+        return m_descriptorSetLayout;
     }
 };
 
 class PipelineBuilder
 {
   private:
-    std::unique_ptr<Pipeline> product;
+    std::unique_ptr<Pipeline> m_product;
 
-    std::weak_ptr<Device> device;
+    std::weak_ptr<Device> m_device;
 
     // shaders
-    std::vector<VkShaderModule> modules;
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos;
+    std::vector<VkShaderModule> m_modules;
+    std::vector<VkPipelineShaderStageCreateInfo> m_shaderStageCreateInfos;
 
     // dynamic states
-    std::vector<VkDynamicState> dynamicStates;
+    std::vector<VkDynamicState> m_dynamicStates;
 
     // draw mode
-    VkPrimitiveTopology topology;
-    bool bPrimitiveRestartEnable;
+    VkPrimitiveTopology m_topology;
+    bool m_bPrimitiveRestartEnable;
 
-    VkExtent2D extent;
+    VkExtent2D m_extent;
 
     // rasterizer
-    VkBool32 depthClampEnable;
-    VkBool32 rasterizerDiscardEnable;
-    VkPolygonMode polygonMode;
-    VkCullModeFlags cullMode;
-    VkFrontFace frontFace;
-    VkBool32 depthBiasEnable;
-    float depthBiasConstantFactor;
-    float depthBiasClamp;
-    float depthBiasSlopeFactor;
-    float lineWidth;
+    VkBool32 m_depthClampEnable;
+    VkBool32 m_rasterizerDiscardEnable;
+    VkPolygonMode m_polygonMode;
+    VkCullModeFlags m_cullMode;
+    VkFrontFace m_frontFace;
+    VkBool32 m_depthBiasEnable;
+    float m_depthBiasConstantFactor;
+    float m_depthBiasClamp;
+    float m_depthBiasSlopeFactor;
+    float m_lineWidth;
 
     // multisampling
-    VkSampleCountFlagBits rasterizationSamples;
-    VkBool32 sampleShadingEnable;
-    float minSampleShading;
-    const VkSampleMask *pSampleMask;
-    VkBool32 alphaToCoverageEnable;
-    VkBool32 alphaToOneEnable;
+    VkSampleCountFlagBits m_rasterizationSamples;
+    VkBool32 m_sampleShadingEnable;
+    float m_minSampleShading;
+    const VkSampleMask *m_pSampleMask;
+    VkBool32 m_alphaToCoverageEnable;
+    VkBool32 m_alphaToOneEnable;
 
     // depth test
-    VkBool32 depthTestEnable;
-    VkBool32 depthWriteEnable;
-    VkCompareOp depthCompareOp;
-    VkBool32 depthBoundsTestEnable;
-    VkBool32 stencilTestEnable;
-    VkStencilOpState front;
-    VkStencilOpState back;
-    float minDepthBounds;
-    float maxDepthBounds;
+    VkBool32 m_depthTestEnable;
+    VkBool32 m_depthWriteEnable;
+    VkCompareOp m_depthCompareOp;
+    VkBool32 m_depthBoundsTestEnable;
+    VkBool32 m_stencilTestEnable;
+    VkStencilOpState m_front;
+    VkStencilOpState m_back;
+    float m_minDepthBounds;
+    float m_maxDepthBounds;
 
     // color blending
-    VkBool32 blendEnable;
-    VkBlendFactor srcColorBlendFactor;
-    VkBlendFactor dstColorBlendFactor;
-    VkBlendOp colorBlendOp;
-    VkBlendFactor srcAlphaBlendFactor;
-    VkBlendFactor dstAlphaBlendFactor;
-    VkBlendOp alphaBlendOp;
-    VkColorComponentFlags colorWriteMask;
+    VkBool32 m_blendEnable;
+    VkBlendFactor m_srcColorBlendFactor;
+    VkBlendFactor m_dstColorBlendFactor;
+    VkBlendOp m_colorBlendOp;
+    VkBlendFactor m_srcAlphaBlendFactor;
+    VkBlendFactor m_dstAlphaBlendFactor;
+    VkBlendOp m_alphaBlendOp;
+    VkColorComponentFlags m_colorWriteMask;
 
-    VkBool32 logicOpEnable;
-    VkLogicOp logicOp;
-    float blendConstants[4];
+    VkBool32 m_logicOpEnable;
+    VkLogicOp m_logicOp;
+    float m_blendConstants[4];
 
     // descriptor set layout
-    std::vector<VkPushConstantRange> pushConstantRanges;
+    std::vector<VkPushConstantRange> m_pushConstantRanges;
 
-    RenderPass *renderPass;
+    RenderPass *m_renderPass;
 
     void restart();
 
@@ -120,8 +120,8 @@ class PipelineBuilder
 
     void setDevice(std::weak_ptr<Device> device)
     {
-        this->device = device;
-        product->device = device;
+        this->m_device = device;
+        m_product->m_device = device;
     }
     void addVertexShaderStage(const char *shaderName, const char *entryPoint = "main");
     void addFragmentShaderStage(const char *shaderName, const char *entryPoint = "main");
@@ -130,154 +130,154 @@ class PipelineBuilder
     void setExtent(VkExtent2D extent);
     void setDepthClampEnable(VkBool32 a)
     {
-        depthClampEnable = a;
+        m_depthClampEnable = a;
     }
     void setRasterizerDiscardEnable(VkBool32 a)
     {
-        rasterizerDiscardEnable = a;
+        m_rasterizerDiscardEnable = a;
     }
     void setPolygonMode(VkPolygonMode a)
     {
-        polygonMode = a;
+        m_polygonMode = a;
     }
     void setCullMode(VkCullModeFlags a)
     {
-        cullMode = a;
+        m_cullMode = a;
     }
     void setFrontFace(VkFrontFace a)
     {
-        frontFace = a;
+        m_frontFace = a;
     }
     void setDepthBiasEnable(VkBool32 a)
     {
-        depthBiasEnable = a;
+        m_depthBiasEnable = a;
     }
     void setDepthBiasConstantFactor(float a)
     {
-        depthBiasConstantFactor = a;
+        m_depthBiasConstantFactor = a;
     }
     void setDepthBiasClamp(float a)
     {
-        depthBiasClamp = a;
+        m_depthBiasClamp = a;
     }
     void setDepthBiasSlopeFactor(float a)
     {
-        depthBiasSlopeFactor = a;
+        m_depthBiasSlopeFactor = a;
     }
     void setLineWidth(float a)
     {
-        lineWidth = a;
+        m_lineWidth = a;
     }
     void setRasterizationSamples(VkSampleCountFlagBits a)
     {
-        rasterizationSamples = a;
+        m_rasterizationSamples = a;
     }
     void setSampleShadingEnable(VkBool32 a)
     {
-        sampleShadingEnable = a;
+        m_sampleShadingEnable = a;
     }
     void setMinSampleShading(float a)
     {
-        minSampleShading = a;
+        m_minSampleShading = a;
     }
     void setPSampleMask(const VkSampleMask *a)
     {
-        pSampleMask = a;
+        m_pSampleMask = a;
     }
     void setAlphaToCoverageEnable(VkBool32 a)
     {
-        alphaToCoverageEnable = a;
+        m_alphaToCoverageEnable = a;
     }
     void setAlphaToOneEnable(VkBool32 a)
     {
-        alphaToOneEnable = a;
+        m_alphaToOneEnable = a;
     }
     void setDepthTestEnable(VkBool32 a)
     {
-        depthTestEnable = a;
+        m_depthTestEnable = a;
     }
     void setDepthWriteEnable(VkBool32 a)
     {
-        depthWriteEnable = a;
+        m_depthWriteEnable = a;
     }
     void setDepthCompareOp(VkCompareOp a)
     {
-        depthCompareOp = a;
+        m_depthCompareOp = a;
     }
     void setDepthBoundsTestEnable(VkBool32 a)
     {
-        depthBoundsTestEnable = a;
+        m_depthBoundsTestEnable = a;
     }
     void setStencilTestEnable(VkBool32 a)
     {
-        stencilTestEnable = a;
+        m_stencilTestEnable = a;
     }
     void setFront(VkStencilOpState a)
     {
-        front = a;
+        m_front = a;
     }
     void setBack(VkStencilOpState a)
     {
-        back = a;
+        m_back = a;
     }
     void setMinDepthBounds(float a)
     {
-        minDepthBounds = a;
+        m_minDepthBounds = a;
     }
     void setMaxDepthBounds(float a)
     {
-        maxDepthBounds = a;
+        m_maxDepthBounds = a;
     }
     void setBlendEnable(VkBool32 a)
     {
-        blendEnable = a;
+        m_blendEnable = a;
     }
     void setSrcColorBlendFactor(VkBlendFactor a)
     {
-        srcColorBlendFactor = a;
+        m_srcColorBlendFactor = a;
     }
     void setDstColorBlendFactor(VkBlendFactor a)
     {
-        dstColorBlendFactor = a;
+        m_dstColorBlendFactor = a;
     }
     void setColorBlendOp(VkBlendOp a)
     {
-        colorBlendOp = a;
+        m_colorBlendOp = a;
     }
     void setSrcAlphaBlendFactor(VkBlendFactor a)
     {
-        srcAlphaBlendFactor = a;
+        m_srcAlphaBlendFactor = a;
     }
     void setDstAlphaBlendFactor(VkBlendFactor a)
     {
-        dstAlphaBlendFactor = a;
+        m_dstAlphaBlendFactor = a;
     }
     void setAlphaBlendOp(VkBlendOp a)
     {
-        alphaBlendOp = a;
+        m_alphaBlendOp = a;
     }
     void setColorWriteMask(VkColorComponentFlags a)
     {
-        colorWriteMask = a;
+        m_colorWriteMask = a;
     }
     void setLogicOpEnable(VkBool32 a)
     {
-        logicOpEnable = a;
+        m_logicOpEnable = a;
     }
     void setLogicOp(VkLogicOp a)
     {
-        logicOp = a;
+        m_logicOp = a;
     }
     void setBlendConstants(float a, float b, float c, float d)
     {
-        blendConstants[0] = a;
-        blendConstants[1] = b;
-        blendConstants[2] = c;
-        blendConstants[3] = d;
+        m_blendConstants[0] = a;
+        m_blendConstants[1] = b;
+        m_blendConstants[2] = c;
+        m_blendConstants[3] = d;
     }
     void setRenderPass(RenderPass *a)
     {
-        renderPass = a;
+        m_renderPass = a;
     }
 
     std::unique_ptr<Pipeline> build();

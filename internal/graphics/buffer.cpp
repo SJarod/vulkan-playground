@@ -4,15 +4,19 @@
 
 #include "buffer.hpp"
 
-Buffer::Buffer(const Device &device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
-    : device(device), size(size)
+Buffer::Buffer(std::weak_ptr<Device> device, VkDeviceSize size, VkBufferUsageFlags usage,
+               VkMemoryPropertyFlags properties)
+    : m_device(device), m_size(size)
 {
+    auto devicePtr = m_device.lock();
+    auto deviceHandle = devicePtr->getHandle();
+
     VkBufferCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                      .flags = 0,
                                      .size = size,
                                      .usage = usage,
                                      .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-    VkResult res = vkCreateBuffer(*device.handle, &createInfo, nullptr, &handle);
+    VkResult res = vkCreateBuffer(deviceHandle, &createInfo, nullptr, &m_handle);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to create buffer : " << res << std::endl;
@@ -20,47 +24,52 @@ Buffer::Buffer(const Device &device, VkDeviceSize size, VkBufferUsageFlags usage
     }
 
     VkMemoryRequirements memReq;
-    vkGetBufferMemoryRequirements(*device.handle, handle, &memReq);
-    std::optional<uint32_t> memoryTypeIndex = device.findMemoryTypeIndex(memReq, properties);
+    vkGetBufferMemoryRequirements(deviceHandle, m_handle, &memReq);
+    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, properties);
     VkMemoryAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                                       .allocationSize = memReq.size,
                                       .memoryTypeIndex = memoryTypeIndex.value()};
-    res = vkAllocateMemory(*device.handle, &allocInfo, nullptr, &memory);
+    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_memory);
     if (res != VK_SUCCESS)
     {
         std::cerr << "Failed to allocate buffer memory : " << res << std::endl;
         return;
     }
 
-    vkBindBufferMemory(*device.handle, handle, memory, 0);
+    vkBindBufferMemory(deviceHandle, m_handle, m_memory, 0);
 }
 
 void Buffer::copyDataToMemory(const void *srcData)
 {
+    auto deviceHandle = m_device.lock()->getHandle();
     // filling the VBO (bind and unbind CPU accessible memory)
     void *data;
-    vkMapMemory(*device.handle, memory, 0, size, 0, &data);
+    vkMapMemory(deviceHandle, m_memory, 0, m_size, 0, &data);
     // TODO : flush memory
-    memcpy(data, srcData, size);
+    memcpy(data, srcData, m_size);
     // TODO : invalidate memory before reading in the pipeline
-    vkUnmapMemory(*device.handle, memory);
+    vkUnmapMemory(deviceHandle, m_memory);
 }
 
 void Buffer::transferBufferToBuffer(VkBuffer src)
 {
-    VkCommandBuffer commandBuffer = device.cmdBeginOneTimeSubmit();
+    auto devicePtr = m_device.lock();
+
+    VkCommandBuffer commandBuffer = devicePtr->cmdBeginOneTimeSubmit();
 
     VkBufferCopy copyRegion{
-        .size = size,
+        .size = m_size,
     };
-    vkCmdCopyBuffer(commandBuffer, src, handle, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, src, m_handle, 1, &copyRegion);
 
-    device.cmdEndOneTimeSubmit(commandBuffer);
+    devicePtr->cmdEndOneTimeSubmit(commandBuffer);
 }
 
 Buffer::~Buffer()
 {
-    vkFreeMemory(*device.handle, memory, nullptr);
+    auto deviceHandle = m_device.lock()->getHandle();
 
-    vkDestroyBuffer(*device.handle, handle, nullptr);
+    vkFreeMemory(deviceHandle, m_memory, nullptr);
+
+    vkDestroyBuffer(deviceHandle, m_handle, nullptr);
 }

@@ -7,10 +7,15 @@ class Mesh;
 
 class Scene
 {
-  public:
-    std::vector<std::shared_ptr<Mesh>> objects;
+  private:
+    std::vector<std::shared_ptr<Mesh>> m_objects;
 
   public:
-    Scene(const std::shared_ptr<Device> device);
-    ~Scene();
+    Scene(const std::weak_ptr<Device> device);
+
+  public:
+    [[nodiscard]] const std::vector<std::shared_ptr<Mesh>> &getObjects() const
+    {
+        return m_objects;
+    }
 };

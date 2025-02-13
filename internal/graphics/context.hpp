@@ -16,47 +16,37 @@ class Context
   private:
     std::vector<const char *> m_layers;
     std::vector<const char *> m_instanceExtensions;
-    std::vector<const char *> m_deviceExtensions;
 
-  public:
     std::unique_ptr<Instance> m_instance;
 
   public:
     void finishCreateContext();
 
-    inline int getLayerCount() const
+    void addLayer(const char *layer);
+    void addInstanceExtension(const char *extension);
+
+  public:
+    [[nodiscard]] inline int getLayerCount() const
     {
         return m_layers.size();
     }
-    inline const char *const *getLayers() const
+    [[nodiscard]] inline const char *const *getLayers() const
     {
         return m_layers.data();
     }
-    inline int getInstanceExtensionCount() const
+    [[nodiscard]] inline int getInstanceExtensionCount() const
     {
         return m_instanceExtensions.size();
     }
-    inline const char *const *getInstanceExtensions() const
+    [[nodiscard]] inline const char *const *getInstanceExtensions() const
     {
         return m_instanceExtensions.data();
     }
-    inline int getDeviceExtensionCount() const
-    {
-        return m_deviceExtensions.size();
-    }
-    inline const char *const *getDeviceExtensions() const
-    {
-        return m_deviceExtensions.data();
-    }
 
-    void addLayer(const char *layer);
-    void addInstanceExtension(const char *extension);
-    void addDeviceExtension(const char *extension);
-
-    inline VkInstance getInstanceHandle() const
+    [[nodiscard]] inline VkInstance getInstanceHandle() const
     {
         return m_instance->getHandle();
     }
 
-    std::vector<VkPhysicalDevice> getAvailablePhysicalDevices() const;
+    [[nodiscard]] std::vector<VkPhysicalDevice> getAvailablePhysicalDevices() const;
 };

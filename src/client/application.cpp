@@ -31,26 +31,27 @@ Application::Application()
     {
         m_context->addInstanceExtension(extension);
     }
-    m_context->addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     m_context->finishCreateContext();
 
-    m_window->surface =
-        std::make_unique<Surface>(*m_context, &WindowGLFW::createSurfacePredicate, m_window->getHandle());
+    m_window->setSurface(
+        std::move(std::make_unique<Surface>(m_context, &WindowGLFW::createSurfacePredicate, m_window->getHandle())));
 
     auto physicalDevices = m_context->getAvailablePhysicalDevices();
     for (auto physicalDevice : physicalDevices)
     {
-        m_devices.emplace_back(std::make_shared<Device>(m_context, physicalDevice, m_window->surface.get()));
-        (*(m_devices.end() - 1))->initLogicalDevice();
+        auto device = std::make_shared<Device>(m_context, physicalDevice, m_window->getSurface());
+        device->addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        device->initLogicalDevice();
+        m_devices.emplace_back(device);
     }
 
-    std::shared_ptr<Device> mainDevice = m_devices[0];
+    std::weak_ptr<Device> mainDevice = m_devices[0];
 
-    m_window->swapchain = std::make_shared<SwapChain>(*mainDevice);
+    m_window->setSwapChain(std::move(std::make_unique<SwapChain>(mainDevice)));
 
     RendererBuilder rb;
     rb.setDevice(mainDevice);
-    rb.setSwapChain(m_window->swapchain);
+    rb.setSwapChain(m_window->getSwapChain());
     m_renderer = rb.build();
 }
 
@@ -74,9 +75,10 @@ void Application::runLoop()
     m_window->makeContextCurrent();
 
     m_scene = std::make_unique<Scene>(mainDevice);
-    for (int i = 0; i < m_scene->objects.size(); ++i)
+    auto objects = m_scene->getObjects();
+    for (int i = 0; i < objects.size(); ++i)
     {
-        m_renderer->registerRenderState(m_scene->objects[i]);
+        m_renderer->registerRenderState(objects[i]);
     }
 
     Camera camera;
@@ -100,10 +102,12 @@ void Application::runLoop()
 
         m_window->pollEvents();
 
-        float pitch = (float)deltaMousePos.second * camera.sensitivity * deltaTime;
-        float yaw = (float)deltaMousePos.first * camera.sensitivity * deltaTime;
-        camera.transform.rotation =
-            glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * camera.transform.rotation * glm::quat(glm::vec3(0.f, -yaw, 0.f));
+        float pitch = (float)deltaMousePos.second * camera.getSensitivity() * deltaTime;
+        float yaw = (float)deltaMousePos.first * camera.getSensitivity() * deltaTime;
+        Transform cameraTransform = camera.getTransform();
+
+        cameraTransform.rotation =
+            glm::quat(glm::vec3(-pitch, 0.f, 0.f)) * cameraTransform.rotation * glm::quat(glm::vec3(0.f, -yaw, 0.f));
 
         float xaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_A) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_D) == GLFW_PRESS);
@@ -111,10 +115,12 @@ void Application::runLoop()
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_S) == GLFW_PRESS);
         float yaxisInput = (glfwGetKey(m_window->getHandle(), GLFW_KEY_Q) == GLFW_PRESS) -
                            (glfwGetKey(m_window->getHandle(), GLFW_KEY_E) == GLFW_PRESS);
-        glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(camera.transform.rotation);
+        glm::vec3 dir = glm::vec3(xaxisInput, yaxisInput, zaxisInput) * glm::mat3_cast(cameraTransform.rotation);
         if (!(xaxisInput == 0.f && zaxisInput == 0.f && yaxisInput == 0.f))
             dir = glm::normalize(dir);
-        camera.transform.position += camera.speed * dir * deltaTime;
+        cameraTransform.position += camera.getSpeed() * dir * deltaTime;
+
+        camera.setTransform(cameraTransform);
 
         uint32_t imageIndex = m_renderer->acquireBackBuffer();
 

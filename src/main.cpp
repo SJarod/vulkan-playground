@@ -6,6 +6,6 @@ int main()
 {
     Application app;
     app.runLoop();
-    
+
     return 0;
 }
