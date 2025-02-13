@@ -113,10 +113,11 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
         VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
-        if (m_texture)
+        if (m_texture.lock())
         {
-            imageInfo.sampler = m_texture->getSampler();
-            imageInfo.imageView = m_texture->getImageView();
+            auto texPtr = m_texture.lock();
+            imageInfo.sampler = texPtr->getSampler();
+            imageInfo.imageView = texPtr->getImageView();
         }
         std::vector<VkWriteDescriptorSet> writes = UniformBufferObject::get_uniform_descriptor_set_writes(
             m_product->m_descriptorSets[i], bufferInfo, imageInfo);

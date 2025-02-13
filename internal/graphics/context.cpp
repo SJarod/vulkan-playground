@@ -4,21 +4,6 @@
 
 #include "context.hpp"
 
-void Context::finishCreateContext()
-{
-    m_instance = std::make_unique<Instance>(*this);
-}
-
-void Context::addLayer(const char *layer)
-{
-    m_layers.push_back(layer);
-}
-
-void Context::addInstanceExtension(const char *extension)
-{
-    m_instanceExtensions.push_back(extension);
-}
-
 std::vector<VkPhysicalDevice> Context::getAvailablePhysicalDevices() const
 {
     uint32_t count;
@@ -26,4 +11,13 @@ std::vector<VkPhysicalDevice> Context::getAvailablePhysicalDevices() const
     std::vector<VkPhysicalDevice> physicalDevices(count);
     vkEnumeratePhysicalDevices(m_instance->getHandle(), &count, physicalDevices.data());
     return physicalDevices;
+}
+
+std::unique_ptr<Context> ContextBuilder::build()
+{
+    InstanceBuilder ib;
+    ib.setContext(m_product.get());
+    ib.setUseReportCallback(false);
+    m_product->m_instance = ib.build();
+    return std::move(m_product);
 }

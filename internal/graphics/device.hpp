@@ -10,9 +10,12 @@
 #include "surface.hpp"
 
 class Context;
+class DeviceBuilder;
 
 class Device
 {
+    friend DeviceBuilder;
+
   private:
     std::weak_ptr<Context> m_cx;
 
@@ -37,8 +40,9 @@ class Device
     VkCommandPool m_commandPool;
     VkCommandPool m_commandPoolTransient;
 
+    Device() = default;
+
   public:
-    Device(const std::shared_ptr<Context> cx, VkPhysicalDevice base, const Surface *surface = nullptr);
     ~Device();
 
     Device(const Device &) = delete;
@@ -46,14 +50,8 @@ class Device
     Device(Device &&) = delete;
     Device &operator=(Device &&) = delete;
 
-    void addDeviceExtension(const char *extension);
-
-    std::vector<VkQueueFamilyProperties> getQueueFamilyProperties() const;
-
     std::optional<uint32_t> findQueueFamilyIndex(const VkQueueFlags &capabilities) const;
     std::optional<uint32_t> findPresentQueueFamilyIndex() const;
-
-    void initLogicalDevice();
 
     std::optional<uint32_t> findMemoryTypeIndex(VkMemoryRequirements requirements,
                                                 VkMemoryPropertyFlags properties) const;
@@ -62,6 +60,8 @@ class Device
     void cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const;
 
   public:
+    [[nodiscard]] std::vector<VkQueueFamilyProperties> getQueueFamilyProperties() const;
+
     [[nodiscard]] inline int getDeviceExtensionCount() const
     {
         return m_deviceExtensions.size();
@@ -117,4 +117,54 @@ class Device
     {
         return m_presentQueue;
     }
+};
+
+class DeviceBuilder
+{
+  private:
+    std::unique_ptr<Device> m_product;
+
+    std::weak_ptr<Context> m_cx;
+
+    std::vector<const char *> m_deviceExtensions;
+
+    void restart()
+    {
+        m_product = std::unique_ptr<Device>(new Device);
+    }
+
+  public:
+    DeviceBuilder()
+    {
+        restart();
+    }
+
+    void setContext(std::weak_ptr<Context> context)
+    {
+        m_product->m_cx = context;
+        m_cx = context;
+    }
+
+    void addDeviceExtension(const char *extension)
+    {
+        m_deviceExtensions.push_back(extension);
+        m_product->m_deviceExtensions.push_back(extension);
+    }
+
+    void setPhysicalDevice(VkPhysicalDevice a)
+    {
+        m_product->m_physicalHandle = a;
+        vkGetPhysicalDeviceFeatures(a, &m_product->m_features);
+        vkGetPhysicalDeviceProperties(a, &m_product->m_props);
+
+        m_product->m_graphicsFamilyIndex = m_product->findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+    }
+
+    void setSurface(const Surface *surface)
+    {
+        m_product->m_surface = surface;
+        m_product->m_presentFamilyIndex = m_product->findPresentQueueFamilyIndex();
+    }
+
+    std::unique_ptr<Device> build();
 };

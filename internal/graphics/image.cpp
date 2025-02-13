@@ -8,6 +8,9 @@
 
 Image::~Image()
 {
+    if (!m_device.lock())
+        return;
+
     auto deviceHandle = m_device.lock()->getHandle();
     vkFreeMemory(deviceHandle, m_memory, nullptr);
     vkDestroyImage(deviceHandle, m_handle, nullptr);

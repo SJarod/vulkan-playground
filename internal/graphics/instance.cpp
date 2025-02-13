@@ -1,34 +1,41 @@
-#include "context.hpp"
+#include <cassert>
 #include <iostream>
+
+#include "context.hpp"
 
 #include "instance.hpp"
 
-Instance::Instance(const Context &cx, bool bDebugReportCallback)
+Instance::~Instance()
 {
+    vkDestroyInstance(m_handle, nullptr);
+}
+
+std::unique_ptr<Instance> InstanceBuilder::build()
+{
+    assert(m_cx);
+
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "rhi_sandbox",
-        .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
-        .pEngineName = "engine",
-        .engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
-        .apiVersion = VK_API_VERSION_1_3,
+        .pApplicationName = m_appName.c_str(),
+        .applicationVersion = m_appVersion,
+        .pEngineName = m_engineName.c_str(),
+        .engineVersion = m_engineVersion,
+        .apiVersion = m_apiVersion,
     };
 
     VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pApplicationInfo = &appInfo,
-        .enabledLayerCount = static_cast<uint32_t>(cx.getLayerCount()),
-        .ppEnabledLayerNames = cx.getLayers(),
-        .enabledExtensionCount = static_cast<uint32_t>(cx.getInstanceExtensionCount()),
-        .ppEnabledExtensionNames = cx.getInstanceExtensions(),
+        .enabledLayerCount = static_cast<uint32_t>(m_cx->getLayerCount()),
+        .ppEnabledLayerNames = m_cx->getLayers(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_cx->getInstanceExtensionCount()),
+        .ppEnabledExtensionNames = m_cx->getInstanceExtensions(),
     };
-    if (bDebugReportCallback)
+    if (m_bUseReportCallback)
     {
         VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-            .flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                     VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
-                     VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+            .flags = m_reportCallbackFlags,
             .pfnCallback = &Instance::debugReportCallback,
         };
 
@@ -44,18 +51,12 @@ Instance::Instance(const Context &cx, bool bDebugReportCallback)
         std::cout << props[i].layerName << std::endl;
     }
 
-    VkInstance handle;
-    if (vkCreateInstance(&createInfo, nullptr, &handle) != VK_SUCCESS)
+    VkResult res = vkCreateInstance(&createInfo, nullptr, &m_product->m_handle);
+    if (res != VK_SUCCESS)
     {
-        std::cerr << "Failed to create instance" << std::endl;
-        return;
+        std::cerr << "Failed to create instance" << res << std::endl;
+        return nullptr;
     }
 
-    m_handle = std::make_unique<VkInstance>(handle);
-}
-
-Instance::~Instance()
-{
-    if (m_handle)
-        vkDestroyInstance(*m_handle, nullptr);
+    return std::move(m_product);
 }

@@ -50,7 +50,7 @@ class RenderStateBuilderI
     virtual void setPipeline(std::shared_ptr<Pipeline> pipeline) = 0;
     virtual void addPoolSize(VkDescriptorType poolSizeType) = 0;
     virtual void setFrameInFlightCount(uint32_t a) = 0;
-    virtual void setTexture(const Texture *texture) = 0;
+    virtual void setTexture(std::weak_ptr<Texture> texture) = 0;
 
     virtual std::unique_ptr<RenderStateABC> build() = 0;
 };
@@ -82,7 +82,7 @@ class MeshRenderStateBuilder : public RenderStateBuilderI
     std::vector<VkDescriptorPoolSize> m_poolSizes;
     uint32_t m_frameInFlightCount;
 
-    const Texture *m_texture;
+    std::weak_ptr<Texture> m_texture;
 
   public:
     MeshRenderStateBuilder()
@@ -106,7 +106,7 @@ class MeshRenderStateBuilder : public RenderStateBuilderI
     {
         m_frameInFlightCount = a;
     }
-    void setTexture(const Texture *texture) override
+    void setTexture(std::weak_ptr<Texture> texture) override
     {
         m_texture = texture;
     }

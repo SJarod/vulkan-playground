@@ -5,7 +5,21 @@
 
 Scene::Scene(const std::weak_ptr<Device> device)
 {
-    m_objects.emplace_back(std::make_shared<Mesh>(device, "assets/viking_room.obj", "assets/viking_room.png"));
+    MeshBuilder mb;
+    MeshDirector md;
+    md.createAssimpMeshBuilder(mb);
+    mb.setDevice(device);
+    mb.setModelFilename("assets/viking_room.obj");
+    std::shared_ptr<Mesh> mesh = mb.build();
+
+    TextureBuilder tb;
+    TextureDirector td;
+    td.createSRGBTextureBuilder(tb);
+    tb.setDevice(device);
+    tb.setTextureFilename("assets/viking_room.png");
+    mesh->setTexture(tb.build());
+
+    m_objects.push_back(mesh);
 
     const std::vector<Vertex> vertices = {{{-0.5f, -0.5f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {1.f, 0.f}},
                                           {{0.5f, -0.5f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f}},
@@ -16,9 +30,18 @@ Scene::Scene(const std::weak_ptr<Device> device)
                                           {{0.5f, 0.5f, -0.5f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 1.f}},
                                           {{-0.5f, 0.5f, -0.5f}, {1.f, 1.f, 1.f, 1.f}, {1.f, 1.f}}};
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-    std::shared_ptr<Mesh> mesh2 = std::make_shared<Mesh>(device, vertices, indices);
+    mb.setDevice(device);
+    mb.setVertices(vertices);
+    mb.setIndices(indices);
+    std::shared_ptr<Mesh> mesh2 = mb.build();
+
     const std::vector<unsigned char> imagePixels = {255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 255, 255};
-    mesh2->setTexture(std::move(std::make_unique<Texture>(device, 2, 2, imagePixels.data(), VK_FORMAT_R8G8B8A8_SRGB,
-                                                          VK_IMAGE_TILING_OPTIMAL, VK_FILTER_NEAREST)));
+    td.createSRGBTextureBuilder(tb);
+    tb.setDevice(device);
+    tb.setImageData(imagePixels);
+    tb.setWidth(2);
+    tb.setHeight(2);
+    mesh2->setTexture(tb.build());
+
     m_objects.push_back(mesh2);
 }

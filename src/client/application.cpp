@@ -21,17 +21,17 @@ Application::Application()
 
     m_window = std::make_unique<WindowGLFW>();
 
-    m_context = std::make_shared<Context>();
-    m_context->addLayer("VK_LAYER_KHRONOS_validation");
-    m_context->addLayer("VK_LAYER_LUNARG_monitor");
-    m_context->addInstanceExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    m_context->addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    ContextBuilder cb;
+    cb.addLayer("VK_LAYER_KHRONOS_validation");
+    cb.addLayer("VK_LAYER_LUNARG_monitor");
+    cb.addInstanceExtension(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    cb.addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     auto requireExtensions = m_window->getRequiredExtensions();
     for (const auto &extension : requireExtensions)
     {
-        m_context->addInstanceExtension(extension);
+        cb.addInstanceExtension(extension);
     }
-    m_context->finishCreateContext();
+    m_context = cb.build();
 
     m_window->setSurface(
         std::move(std::make_unique<Surface>(m_context, &WindowGLFW::createSurfacePredicate, m_window->getHandle())));
@@ -39,10 +39,12 @@ Application::Application()
     auto physicalDevices = m_context->getAvailablePhysicalDevices();
     for (auto physicalDevice : physicalDevices)
     {
-        auto device = std::make_shared<Device>(m_context, physicalDevice, m_window->getSurface());
-        device->addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-        device->initLogicalDevice();
-        m_devices.emplace_back(device);
+        DeviceBuilder db;
+        db.setContext(m_context);
+        db.setPhysicalDevice(physicalDevice);
+        db.setSurface(m_window->getSurface());
+        db.addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        m_devices.emplace_back(db.build());
     }
 
     std::weak_ptr<Device> mainDevice = m_devices[0];

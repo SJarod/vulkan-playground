@@ -7,100 +7,12 @@
 
 #include "device.hpp"
 
-Device::Device(const std::shared_ptr<Context> cx, VkPhysicalDevice base, const Surface *surface)
-    : m_cx(cx), m_surface(surface)
-{
-    m_physicalHandle = base;
-    vkGetPhysicalDeviceFeatures(base, &m_features);
-    vkGetPhysicalDeviceProperties(base, &m_props);
-    m_graphicsFamilyIndex = findQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-    if (m_surface)
-        m_presentFamilyIndex = findPresentQueueFamilyIndex();
-}
-void Device::addDeviceExtension(const char *extension)
-{
-    m_deviceExtensions.push_back(extension);
-}
-
 Device::~Device()
 {
     vkDestroyCommandPool(m_handle, m_commandPool, nullptr);
     vkDestroyCommandPool(m_handle, m_commandPoolTransient, nullptr);
 
     vkDestroyDevice(m_handle, nullptr);
-}
-
-void Device::initLogicalDevice()
-{
-    std::set<uint32_t> uniqueQueueFamilies;
-
-    if (m_graphicsFamilyIndex.has_value())
-        uniqueQueueFamilies.insert(m_graphicsFamilyIndex.value());
-    if (m_presentFamilyIndex.has_value())
-        uniqueQueueFamilies.insert(m_presentFamilyIndex.value());
-
-    float queuePriority = 1.f;
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    for (uint32_t queueFamily : uniqueQueueFamilies)
-    {
-        VkDeviceQueueCreateInfo queueCreateInfo = {.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                                                   .queueFamilyIndex = queueFamily,
-                                                   .queueCount = 1,
-                                                   .pQueuePriorities = &queuePriority};
-        queueCreateInfos.emplace_back(queueCreateInfo);
-    }
-
-    auto contextPtr = m_cx.lock();
-    VkDeviceCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-        .pQueueCreateInfos = queueCreateInfos.data(),
-        .enabledLayerCount = static_cast<uint32_t>(contextPtr->getLayerCount()),
-        .ppEnabledLayerNames = contextPtr->getLayers(),
-        .enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size()),
-        .ppEnabledExtensionNames = m_deviceExtensions.data(),
-        .pEnabledFeatures = &m_features,
-    };
-
-    // create device
-    VkResult res = vkCreateDevice(m_physicalHandle, &createInfo, nullptr, &m_handle);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create logical device : " << res << std::endl;
-        return;
-    }
-
-    // queue
-
-    vkGetDeviceQueue(m_handle, m_graphicsFamilyIndex.value(), 0, &m_graphicsQueue);
-    if (m_surface)
-        vkGetDeviceQueue(m_handle, m_presentFamilyIndex.value(), 0, &m_presentQueue);
-
-    // command pools
-
-    VkCommandPoolCreateInfo commandPoolCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = m_graphicsFamilyIndex.value(),
-    };
-    res = vkCreateCommandPool(m_handle, &commandPoolCreateInfo, nullptr, &m_commandPool);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create command pool : " << res << std::endl;
-        return;
-    }
-
-    VkCommandPoolCreateInfo commandPoolTransientCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        .queueFamilyIndex = m_graphicsFamilyIndex.value(),
-    };
-    res = vkCreateCommandPool(m_handle, &commandPoolTransientCreateInfo, nullptr, &m_commandPoolTransient);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create transient command pool : " << res << std::endl;
-        return;
-    }
 }
 
 std::optional<uint32_t> Device::findMemoryTypeIndex(VkMemoryRequirements requirements,
@@ -191,4 +103,84 @@ void Device::cmdEndOneTimeSubmit(VkCommandBuffer commandBuffer) const
 
     vkQueueWaitIdle(m_graphicsQueue);
     vkFreeCommandBuffers(m_handle, m_commandPoolTransient, 1, &commandBuffer);
+}
+
+std::unique_ptr<Device> DeviceBuilder::build()
+{
+    assert(m_product->m_physicalHandle);
+    assert(m_cx.lock());
+
+    std::set<uint32_t> uniqueQueueFamilies;
+
+    if (m_product->m_graphicsFamilyIndex.has_value())
+        uniqueQueueFamilies.insert(m_product->m_graphicsFamilyIndex.value());
+    if (m_product->m_presentFamilyIndex.has_value())
+        uniqueQueueFamilies.insert(m_product->m_presentFamilyIndex.value());
+
+    float queuePriority = 1.f;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    for (uint32_t queueFamily : uniqueQueueFamilies)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo = {.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                                                   .queueFamilyIndex = queueFamily,
+                                                   .queueCount = 1,
+                                                   .pQueuePriorities = &queuePriority};
+        queueCreateInfos.emplace_back(queueCreateInfo);
+    }
+
+    auto contextPtr = m_cx.lock();
+    VkDeviceCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .pQueueCreateInfos = queueCreateInfos.data(),
+        .enabledLayerCount = static_cast<uint32_t>(contextPtr->getLayerCount()),
+        .ppEnabledLayerNames = contextPtr->getLayers(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size()),
+        .ppEnabledExtensionNames = m_deviceExtensions.data(),
+        .pEnabledFeatures = &m_product->m_features,
+    };
+
+    // create device
+    VkResult res = vkCreateDevice(m_product->m_physicalHandle, &createInfo, nullptr, &m_product->m_handle);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create logical device : " << res << std::endl;
+        return nullptr;
+    }
+
+    // queue
+
+    vkGetDeviceQueue(m_product->m_handle, m_product->m_graphicsFamilyIndex.value(), 0, &m_product->m_graphicsQueue);
+    if (m_product->m_surface)
+        vkGetDeviceQueue(m_product->m_handle, m_product->m_presentFamilyIndex.value(), 0, &m_product->m_presentQueue);
+
+    // command pools
+
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = m_product->m_graphicsFamilyIndex.value(),
+    };
+    res = vkCreateCommandPool(m_product->m_handle, &commandPoolCreateInfo, nullptr, &m_product->m_commandPool);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create command pool : " << res << std::endl;
+        return nullptr;
+    }
+
+    VkCommandPoolCreateInfo commandPoolTransientCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+        .queueFamilyIndex = m_product->m_graphicsFamilyIndex.value(),
+    };
+    res = vkCreateCommandPool(m_product->m_handle, &commandPoolTransientCreateInfo, nullptr,
+                              &m_product->m_commandPoolTransient);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create transient command pool : " << res << std::endl;
+        return nullptr;
+    }
+
+    auto result = std::move(m_product);
+    return result;
 }
