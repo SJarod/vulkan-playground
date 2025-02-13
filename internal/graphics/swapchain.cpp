@@ -142,7 +142,7 @@ SwapChain::~SwapChain()
     vkDestroySwapchainKHR(deviceHandle, m_handle, nullptr);
 }
 
-const VkFormat &SwapChain::getDepthImageFormat() const
+const VkFormat SwapChain::getDepthImageFormat() const
 {
     return m_depthImage->getFormat();
 }

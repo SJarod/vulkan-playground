@@ -12,9 +12,12 @@ Texture::Texture(std::weak_ptr<Device> device, uint32_t width, uint32_t height, 
 {
     size_t imageSize = width * height * 4;
 
-    std::unique_ptr<Buffer> stagingBuffer =
-        std::make_unique<Buffer>(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    BufferBuilder bb;
+    BufferDirector bd;
+    bd.createStagingBufferBuilder(bb);
+    bb.setDevice(device);
+    bb.setSize(imageSize);
+    std::unique_ptr<Buffer> stagingBuffer = bb.build();
 
     stagingBuffer->copyDataToMemory(data);
 

@@ -21,15 +21,20 @@ void Mesh::createVertexBuffer()
 
     size_t vertexBufferSize = sizeof(Vertex) * m_vertices.size();
 
-    std::unique_ptr<Buffer> stagingBuffer =
-        std::make_unique<Buffer>(m_device, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    BufferBuilder bb;
+    BufferDirector bd;
+    bd.createStagingBufferBuilder(bb);
+    bb.setDevice(m_device);
+    bb.setSize(vertexBufferSize);
+    std::unique_ptr<Buffer> stagingBuffer = bb.build();
 
     stagingBuffer->copyDataToMemory(m_vertices.data());
 
-    m_vertexBuffer = std::make_unique<Buffer>(m_device, vertexBufferSize,
-                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    bb.restart();
+    bd.createVertexBufferBuilder(bb);
+    bb.setDevice(m_device);
+    bb.setSize(vertexBufferSize);
+    m_vertexBuffer = bb.build();
 
     // transfer from staging buffer to vertex buffer
 
@@ -43,15 +48,21 @@ void Mesh::createIndexBuffer()
 
     size_t indexBufferSize = sizeof(uint16_t) * m_indices.size();
 
-    std::unique_ptr<Buffer> stagingBuffer =
-        std::make_unique<Buffer>(m_device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    BufferBuilder bb;
+    BufferDirector bd;
+    bd.createStagingBufferBuilder(bb);
+    bb.setDevice(m_device);
+    bb.setSize(indexBufferSize);
+
+    std::unique_ptr<Buffer> stagingBuffer = bb.build();
 
     stagingBuffer->copyDataToMemory(m_indices.data());
 
-    m_indexBuffer = std::make_unique<Buffer>(m_device, indexBufferSize,
-                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    bb.restart();
+    bd.createIndexBufferBuilder(bb);
+    bb.setDevice(m_device);
+    bb.setSize(indexBufferSize);
+    m_indexBuffer = bb.build();
 
     m_indexBuffer->transferBufferToBuffer(stagingBuffer->getHandle());
     stagingBuffer.reset();

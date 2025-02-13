@@ -30,10 +30,10 @@ class SwapChain
     SwapChain(std::weak_ptr<Device> device);
     ~SwapChain();
 
-    SwapChain(const SwapChain&) = delete;
-    SwapChain& operator=(const SwapChain&) = delete;
-    SwapChain(SwapChain&&) = delete;
-    SwapChain& operator=(SwapChain&&) = delete;
+    SwapChain(const SwapChain &) = delete;
+    SwapChain &operator=(const SwapChain &) = delete;
+    SwapChain(SwapChain &&) = delete;
+    SwapChain &operator=(SwapChain &&) = delete;
 
   public:
     [[nodiscard]] inline const VkSwapchainKHR &getHandle() const
@@ -54,7 +54,7 @@ class SwapChain
     {
         return m_depthImageView;
     }
-    [[nodiscard]] const VkFormat &getDepthImageFormat() const;
+    [[nodiscard]] const VkFormat getDepthImageFormat() const;
 
     [[nodiscard]] inline const VkExtent2D &getExtent() const
     {

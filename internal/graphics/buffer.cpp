@@ -1,43 +1,11 @@
+#include <cassert>
 #include <iostream>
 
 #include "device.hpp"
 
+#include "engine/uniform.hpp"
+
 #include "buffer.hpp"
-
-Buffer::Buffer(std::weak_ptr<Device> device, VkDeviceSize size, VkBufferUsageFlags usage,
-               VkMemoryPropertyFlags properties)
-    : m_device(device), m_size(size)
-{
-    auto devicePtr = m_device.lock();
-    auto deviceHandle = devicePtr->getHandle();
-
-    VkBufferCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                     .flags = 0,
-                                     .size = size,
-                                     .usage = usage,
-                                     .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-    VkResult res = vkCreateBuffer(deviceHandle, &createInfo, nullptr, &m_handle);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create buffer : " << res << std::endl;
-        return;
-    }
-
-    VkMemoryRequirements memReq;
-    vkGetBufferMemoryRequirements(deviceHandle, m_handle, &memReq);
-    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, properties);
-    VkMemoryAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                      .allocationSize = memReq.size,
-                                      .memoryTypeIndex = memoryTypeIndex.value()};
-    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_memory);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to allocate buffer memory : " << res << std::endl;
-        return;
-    }
-
-    vkBindBufferMemory(deviceHandle, m_handle, m_memory, 0);
-}
 
 void Buffer::copyDataToMemory(const void *srcData)
 {
@@ -72,4 +40,63 @@ Buffer::~Buffer()
     vkFreeMemory(deviceHandle, m_memory, nullptr);
 
     vkDestroyBuffer(deviceHandle, m_handle, nullptr);
+}
+
+std::unique_ptr<Buffer> BufferBuilder::build()
+{
+    assert(m_device.lock());
+
+    auto devicePtr = m_device.lock();
+    auto deviceHandle = devicePtr->getHandle();
+
+    VkBufferCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                     .flags = 0,
+                                     .size = m_size,
+                                     .usage = m_usage,
+                                     .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
+    VkResult res = vkCreateBuffer(deviceHandle, &createInfo, nullptr, &m_product->m_handle);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create buffer : " << res << std::endl;
+        return nullptr;
+    }
+
+    VkMemoryRequirements memReq;
+    vkGetBufferMemoryRequirements(deviceHandle, m_product->m_handle, &memReq);
+    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, m_properties);
+    VkMemoryAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                                      .allocationSize = memReq.size,
+                                      .memoryTypeIndex = memoryTypeIndex.value()};
+    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_product->m_memory);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to allocate buffer memory : " << res << std::endl;
+        return nullptr;
+    }
+
+    vkBindBufferMemory(deviceHandle, m_product->m_handle, m_product->m_memory, 0);
+
+    return std::move(m_product);
+}
+
+void BufferDirector::createStagingBufferBuilder(BufferBuilder &builder)
+{
+    builder.setUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+}
+void BufferDirector::createVertexBufferBuilder(BufferBuilder &builder)
+{
+    builder.setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+}
+void BufferDirector::createIndexBufferBuilder(BufferBuilder &builder)
+{
+    builder.setUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+}
+void BufferDirector::createUniformBufferBuilder(BufferBuilder &builder)
+{
+    builder.setSize(sizeof(UniformBufferObject));
+    builder.setUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }

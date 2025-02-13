@@ -93,9 +93,12 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
     m_product->m_uniformBuffersMapped.resize(m_frameInFlightCount);
     for (int i = 0; i < m_product->m_uniformBuffers.size(); ++i)
     {
-        m_product->m_uniformBuffers[i] =
-            std::make_unique<Buffer>(m_device, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        BufferBuilder bb;
+        BufferDirector bd;
+        bd.createUniformBufferBuilder(bb);
+        bb.setDevice(m_device);
+        m_product->m_uniformBuffers[i] = bb.build();
+
         vkMapMemory(deviceHandle, m_product->m_uniformBuffers[i]->getMemory(), 0, sizeof(UniformBufferObject), 0,
                     &m_product->m_uniformBuffersMapped[i]);
     }
