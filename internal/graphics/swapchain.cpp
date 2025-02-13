@@ -112,11 +112,13 @@ SwapChain::SwapChain(std::weak_ptr<Device> device) : m_device(device)
             std::cerr << "Failed to create an image view : " << res << std::endl;
     }
 
-    m_depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
-    m_depthImage =
-        std::make_unique<Image>(device, m_depthFormat, extent.width, extent.height, VK_IMAGE_TILING_OPTIMAL,
-                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    ImageBuilder ib;
+    ImageDirector id;
+    id.createDepthImage2DBuilder(ib);
+    ib.setDevice(device);
+    ib.setWidth(extent.width);
+    ib.setHeight(extent.height);
+    m_depthImage = ib.build();
 
     ImageLayoutTransitionBuilder iltb;
     ImageLayoutTransitionDirector iltd;
@@ -138,4 +140,9 @@ SwapChain::~SwapChain()
         vkDestroyImageView(deviceHandle, imageView, nullptr);
     }
     vkDestroySwapchainKHR(deviceHandle, m_handle, nullptr);
+}
+
+const VkFormat &SwapChain::getDepthImageFormat() const
+{
+    return m_depthImage->getFormat();
 }

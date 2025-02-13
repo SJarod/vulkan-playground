@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <vulkan/vulkan.h>
 
 class Device;
@@ -19,23 +21,28 @@ class ImageLayoutTransition
     VkPipelineStageFlags dstStageMask = {};
 };
 
+class ImageBuilder;
+
 class Image
 {
+    friend ImageBuilder;
+
   private:
     std::weak_ptr<Device> m_device;
 
     VkFormat m_format;
     uint32_t m_width;
     uint32_t m_height;
+    uint32_t m_depth;
 
     VkImageAspectFlags m_aspectFlags;
 
     VkImage m_handle;
     VkDeviceMemory m_memory;
 
+    Image() = default;
+
   public:
-    Image(std::weak_ptr<Device> device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
-          VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags);
     ~Image();
 
     Image(const Image &) = delete;
@@ -58,6 +65,114 @@ class Image
     {
         return m_handle;
     }
+
+    [[nodiscard]] VkFormat getFormat() const
+    {
+        return m_format;
+    }
+};
+
+class ImageBuilder
+{
+  private:
+    std::unique_ptr<Image> m_product;
+
+    std::weak_ptr<Device> m_device;
+
+    VkImageType m_imageType;
+
+    VkImageTiling m_tiling;
+    VkImageUsageFlags m_usage;
+    VkMemoryPropertyFlags m_properties;
+
+    uint32_t m_mipLevels;
+    uint32_t m_arrayLayers;
+
+    VkSampleCountFlagBits m_samples;
+    VkSharingMode m_sharingMode;
+    VkImageLayout m_initialLayout;
+
+    void restart()
+    {
+        m_product = std::unique_ptr<Image>(new Image);
+    }
+
+  public:
+    ImageBuilder()
+    {
+        restart();
+    }
+
+    void setDevice(std::weak_ptr<Device> a)
+    {
+        m_device = a;
+        m_product->m_device = a;
+    }
+    void setImageType(VkImageType a)
+    {
+        m_imageType = a;
+    }
+    void setFormat(VkFormat a)
+    {
+        m_product->m_format = a;
+    }
+    void setWidth(uint32_t a)
+    {
+        m_product->m_width = a;
+    }
+    void setHeight(uint32_t a)
+    {
+        m_product->m_height = a;
+    }
+    void setDepth(uint32_t a)
+    {
+        m_product->m_depth = a;
+    }
+    void setTiling(VkImageTiling a)
+    {
+        m_tiling = a;
+    }
+    void setUsage(VkImageUsageFlags a)
+    {
+        m_usage = a;
+    }
+    void setProperties(VkMemoryPropertyFlags a)
+    {
+        m_properties = a;
+    }
+    void setMipLevels(uint32_t a)
+    {
+        m_mipLevels = a;
+    }
+    void setArrayLayers(uint32_t a)
+    {
+        m_arrayLayers = a;
+    }
+    void setSamples(VkSampleCountFlagBits a)
+    {
+        m_samples = a;
+    }
+    void setSharingMode(VkSharingMode a)
+    {
+        m_sharingMode = a;
+    }
+    void setInitialLayout(VkImageLayout a)
+    {
+        m_initialLayout = a;
+    }
+    void setAspectFlags(VkImageAspectFlags a)
+    {
+        m_product->m_aspectFlags = a;
+    }
+
+    std::unique_ptr<Image> build();
+};
+class ImageDirector
+{
+  public:
+    void createImage2DBuilder(ImageBuilder &builder);
+    void createDepthImage2DBuilder(ImageBuilder &builder);
+    void createSampledImage2DBuilder(ImageBuilder &builder);
 };
 
 class ImageLayoutTransitionBuilder

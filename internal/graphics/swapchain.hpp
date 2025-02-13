@@ -21,7 +21,6 @@ class SwapChain
     std::vector<VkImage> m_images;
     std::vector<VkImageView> m_imageViews;
 
-    VkFormat m_depthFormat;
     std::unique_ptr<Image> m_depthImage;
     VkImageView m_depthImageView;
 
@@ -55,10 +54,7 @@ class SwapChain
     {
         return m_depthImageView;
     }
-    [[nodiscard]] inline const VkFormat &getDepthImageFormat() const
-    {
-        return m_depthFormat;
-    }
+    [[nodiscard]] const VkFormat &getDepthImageFormat() const;
 
     [[nodiscard]] inline const VkExtent2D &getExtent() const
     {

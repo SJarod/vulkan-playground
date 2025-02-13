@@ -6,60 +6,6 @@
 
 #include "image.hpp"
 
-Image::Image(std::weak_ptr<Device> device, VkFormat format, uint32_t width, uint32_t height, VkImageTiling tiling,
-             VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
-    : m_device(device), m_format(format), m_width(width), m_height(height), m_aspectFlags(aspectFlags)
-{
-    auto devicePtr = m_device.lock();
-    auto deviceHandle = devicePtr->getHandle();
-
-    VkImageCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = format,
-        .extent =
-            {
-                .width = width,
-                .height = height,
-                .depth = 1U,
-            },
-        .mipLevels = 1U,
-        .arrayLayers = 1U,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = tiling,
-        .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    VkResult res = vkCreateImage(deviceHandle, &createInfo, nullptr, &m_handle);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to create image : " << res << std::endl;
-        return;
-    }
-
-    VkMemoryRequirements memReq;
-    vkGetImageMemoryRequirements(deviceHandle, m_handle, &memReq);
-    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, properties);
-
-    VkMemoryAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = memReq.size,
-        .memoryTypeIndex = memoryTypeIndex.value(),
-    };
-
-    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_memory);
-    if (res != VK_SUCCESS)
-    {
-        std::cerr << "Failed to allocate memory : " << res << std::endl;
-        return;
-    }
-
-    vkBindImageMemory(deviceHandle, m_handle, m_memory, 0);
-}
-
 Image::~Image()
 {
     auto deviceHandle = m_device.lock()->getHandle();
@@ -145,6 +91,91 @@ VkImageView Image::createImageView()
         std::cerr << "Failed to create image view : " << res << std::endl;
 
     return imageView;
+}
+
+std::unique_ptr<Image> ImageBuilder::build()
+{
+    assert(m_device.lock());
+
+    auto devicePtr = m_device.lock();
+    auto deviceHandle = devicePtr->getHandle();
+
+    VkImageCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .flags = 0,
+        .imageType = m_imageType,
+        .format = m_product->m_format,
+        .extent =
+            {
+                .width = m_product->m_width,
+                .height = m_product->m_height,
+                .depth = m_product->m_depth,
+            },
+        .mipLevels = m_mipLevels,
+        .arrayLayers = m_arrayLayers,
+        .samples = m_samples,
+        .tiling = m_tiling,
+        .usage = m_usage,
+        .sharingMode = m_sharingMode,
+        .initialLayout = m_initialLayout,
+    };
+
+    VkResult res = vkCreateImage(deviceHandle, &createInfo, nullptr, &m_product->m_handle);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to create image : " << res << std::endl;
+        return nullptr;
+    }
+
+    VkMemoryRequirements memReq;
+    vkGetImageMemoryRequirements(deviceHandle, m_product->m_handle, &memReq);
+    std::optional<uint32_t> memoryTypeIndex = devicePtr->findMemoryTypeIndex(memReq, m_properties);
+
+    VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memReq.size,
+        .memoryTypeIndex = memoryTypeIndex.value(),
+    };
+
+    res = vkAllocateMemory(deviceHandle, &allocInfo, nullptr, &m_product->m_memory);
+    if (res != VK_SUCCESS)
+    {
+        std::cerr << "Failed to allocate memory : " << res << std::endl;
+        return nullptr;
+    }
+
+    vkBindImageMemory(deviceHandle, m_product->m_handle, m_product->m_memory, 0);
+
+    return std::move(m_product);
+}
+
+void ImageDirector::createImage2DBuilder(ImageBuilder &builder)
+{
+    builder.setImageType(VK_IMAGE_TYPE_2D);
+    builder.setDepth(1U);
+    builder.setMipLevels(1U);
+    builder.setArrayLayers(1U);
+    builder.setSamples(VK_SAMPLE_COUNT_1_BIT);
+    builder.setSharingMode(VK_SHARING_MODE_EXCLUSIVE);
+    builder.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+}
+
+void ImageDirector::createDepthImage2DBuilder(ImageBuilder &builder)
+{
+    createImage2DBuilder(builder);
+    builder.setFormat(VK_FORMAT_D32_SFLOAT_S8_UINT);
+    builder.setTiling(VK_IMAGE_TILING_OPTIMAL);
+    builder.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    builder.setAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+}
+
+void ImageDirector::createSampledImage2DBuilder(ImageBuilder &builder)
+{
+    createImage2DBuilder(builder);
+    builder.setUsage(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+    builder.setProperties(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    builder.setAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void ImageLayoutTransitionBuilder::restart()
