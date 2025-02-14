@@ -79,11 +79,13 @@ void MeshBuilder::setVerticesFromAiScene(const aiScene *pScene)
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
     {
         const aiVector3D pPos = mesh->mVertices[i];
+        const aiVector3D pNormal = mesh->mNormals[i];
         aiVector3D pUV = aiVector3D(0.f, 0.f, 0.f);
         if (mesh->HasTextureCoords(0))
             pUV = mesh->mTextureCoords[0][i];
 
-        m_product->m_vertices.emplace_back(Vertex({pPos.x, pPos.y, pPos.z}, {0.f, 0.f, 0.f, 1.f}, {pUV.x, pUV.y}));
+        m_product->m_vertices.emplace_back(
+            Vertex({pPos.x, pPos.y, pPos.z}, {pNormal.x, pNormal.y, pNormal.z}, {0.f, 0.f, 0.f, 1.f}, {pUV.x, pUV.y}));
     }
 }
 void MeshBuilder::setIndicesFromAiScene(const aiScene *pScene)

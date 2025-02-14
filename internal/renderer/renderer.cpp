@@ -48,8 +48,8 @@ void Renderer::registerRenderState(const std::shared_ptr<Mesh> mesh)
     PipelineDirector pd;
     pd.createColorDepthRasterizerBuilder(pb);
     pb.setDevice(m_device);
-    pb.addVertexShaderStage("triangle");
-    pb.addFragmentShaderStage("triangle");
+    pb.addVertexShaderStage("phong");
+    pb.addFragmentShaderStage("phong");
     pb.setRenderPass(m_renderPass.get());
     pb.setExtent(m_swapchain->getExtent());
     mrsb.setPipeline(pb.build());

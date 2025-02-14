@@ -14,8 +14,10 @@ target_link_libraries(${component}
 add_subdirectory(client)
 
 set(SHADER_SOURCES
-	shaders/triangle.vert
-	shaders/triangle.frag
+	shaders/unlit.vert
+	shaders/unlit.frag
+	shaders/phong.vert
+	shaders/phong.frag
 )
 
 list(LENGTH SHADER_SOURCES SHADER_COUNT)
