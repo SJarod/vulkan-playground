@@ -24,7 +24,7 @@ RenderStateABC::~RenderStateABC()
 
 void RenderStateABC::updateUniformBuffers(uint32_t imageIndex, const Camera &camera)
 {
-    UniformBufferObject ubo = {
+    MVP ubo = {
         .model = glm::identity<glm::mat4>(),
         .view = camera.getViewMatrix(),
         .proj = camera.getProjectionMatrix(),
@@ -96,10 +96,11 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
         BufferBuilder bb;
         BufferDirector bd;
         bd.createUniformBufferBuilder(bb);
+        bb.setSize(sizeof(RenderStateABC::MVP));
         bb.setDevice(m_device);
         m_product->m_uniformBuffers[i] = bb.build();
 
-        vkMapMemory(deviceHandle, m_product->m_uniformBuffers[i]->getMemory(), 0, sizeof(UniformBufferObject), 0,
+        vkMapMemory(deviceHandle, m_product->m_uniformBuffers[i]->getMemory(), 0, sizeof(RenderStateABC::MVP), 0,
                     &m_product->m_uniformBuffersMapped[i]);
     }
 
@@ -108,8 +109,19 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
         VkDescriptorBufferInfo bufferInfo = {
             .buffer = m_product->m_uniformBuffers[i]->getHandle(),
             .offset = 0,
-            .range = sizeof(UniformBufferObject),
+            .range = sizeof(RenderStateABC::MVP),
         };
+        UniformDescriptorBuilder udb;
+        udb.addSetWrites(VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = m_product->m_descriptorSets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &bufferInfo,
+        });
+
         VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
@@ -119,8 +131,17 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
             imageInfo.sampler = texPtr->getSampler();
             imageInfo.imageView = texPtr->getImageView();
         }
-        std::vector<VkWriteDescriptorSet> writes = UniformBufferObject::get_uniform_descriptor_set_writes(
-            m_product->m_descriptorSets[i], bufferInfo, imageInfo);
+        udb.addSetWrites(VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = m_product->m_descriptorSets[i],
+            .dstBinding = 1,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &imageInfo,
+        });
+
+        std::vector<VkWriteDescriptorSet> writes = udb.build()->getSetWrites();
         vkUpdateDescriptorSets(deviceHandle, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     }
 

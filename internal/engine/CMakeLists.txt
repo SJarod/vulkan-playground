@@ -5,6 +5,7 @@ add_library(${component} STATIC "")
 target_sources(${component}
     PRIVATE
     uniform.hpp
+
     vertex.hpp
 
     transform.hpp

@@ -96,7 +96,6 @@ void BufferDirector::createIndexBufferBuilder(BufferBuilder &builder)
 }
 void BufferDirector::createUniformBufferBuilder(BufferBuilder &builder)
 {
-    builder.setSize(sizeof(UniformBufferObject));
     builder.setUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     builder.setProperties(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }

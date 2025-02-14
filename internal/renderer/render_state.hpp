@@ -15,6 +15,14 @@ class MeshRenderStateBuilder;
 class RenderStateABC
 {
   protected:
+    class MVP
+    {
+      public:
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     std::weak_ptr<Device> m_device;
 
     std::shared_ptr<Pipeline> m_pipeline;
