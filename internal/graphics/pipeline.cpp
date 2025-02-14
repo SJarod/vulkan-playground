@@ -232,15 +232,20 @@ std::unique_ptr<Pipeline> PipelineBuilder::build()
         .logicOp = m_logicOp,
         .attachmentCount = 1,
         .pAttachments = &colorBlendAttachment,
-        .blendConstants = {m_blendConstants[0], m_blendConstants[1], m_blendConstants[2], m_blendConstants[3]},
+        .blendConstants =
+            {
+                m_blendConstants[0],
+                m_blendConstants[1],
+                m_blendConstants[2],
+                m_blendConstants[3],
+            },
     };
 
     // descriptor set layout
 
-    UniformDescriptorBuilder udb;
-    UniformDescriptorDirector udd;
-    udd.createMVPAndTextureBuilder(udb);
-    auto layoutBindings = udb.build()->getSetLayoutBindings();
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+    if (m_uniformDescriptorPack)
+        layoutBindings = m_uniformDescriptorPack->getSetLayoutBindings();
     VkDescriptorSetLayoutCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = static_cast<uint32_t>(layoutBindings.size()),

@@ -67,7 +67,10 @@ void Renderer::recordRenderers(uint32_t imageIndex, const Camera &camera)
     vkResetCommandBuffer(commandBuffer, 0);
 
     VkCommandBufferBeginInfo commandBufferBeginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = 0, .pInheritanceInfo = nullptr};
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = 0,
+        .pInheritanceInfo = nullptr,
+    };
     VkResult res = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
     if (res != VK_SUCCESS)
     {
@@ -118,14 +121,16 @@ void Renderer::submitBackBuffer()
     VkSemaphore waitSemaphores[] = {m_backBuffers[m_backBufferIndex].acquireSemaphore};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSemaphore signalSemaphores[] = {m_backBuffers[m_backBufferIndex].renderSemaphore};
-    VkSubmitInfo submitInfo = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                               .waitSemaphoreCount = 1,
-                               .pWaitSemaphores = waitSemaphores,
-                               .pWaitDstStageMask = waitStages,
-                               .commandBufferCount = 1,
-                               .pCommandBuffers = &m_backBuffers[m_backBufferIndex].commandBuffer,
-                               .signalSemaphoreCount = 1,
-                               .pSignalSemaphores = signalSemaphores};
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = waitSemaphores,
+        .pWaitDstStageMask = waitStages,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &m_backBuffers[m_backBufferIndex].commandBuffer,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = signalSemaphores,
+    };
 
     VkResult res = vkQueueSubmit(m_device.lock()->getGraphicsQueue(), 1, &submitInfo,
                                  m_backBuffers[m_backBufferIndex].inFlightFence);
@@ -137,13 +142,15 @@ void Renderer::presentBackBuffer(uint32_t imageIndex)
 {
     VkSwapchainKHR swapchains[] = {m_swapchain->getHandle()};
     VkSemaphore waitSemaphores[] = {m_backBuffers[m_backBufferIndex].renderSemaphore};
-    VkPresentInfoKHR presentInfo = {.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                    .waitSemaphoreCount = 1,
-                                    .pWaitSemaphores = waitSemaphores,
-                                    .swapchainCount = 1,
-                                    .pSwapchains = swapchains,
-                                    .pImageIndices = &imageIndex,
-                                    .pResults = nullptr};
+    VkPresentInfoKHR presentInfo = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = waitSemaphores,
+        .swapchainCount = 1,
+        .pSwapchains = swapchains,
+        .pImageIndices = &imageIndex,
+        .pResults = nullptr,
+    };
 
     VkResult res = vkQueuePresentKHR(m_device.lock()->getPresentQueue(), &presentInfo);
     if (res != VK_SUCCESS)
@@ -174,10 +181,12 @@ std::unique_ptr<Renderer> RendererBuilder::build()
 
     m_product->m_backBuffers.resize(m_product->m_bufferingType);
 
-    VkCommandBufferAllocateInfo commandBufferAllocInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                          .commandPool = devicePtr->getCommandPool(),
-                                                          .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                                          .commandBufferCount = 1U};
+    VkCommandBufferAllocateInfo commandBufferAllocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = devicePtr->getCommandPool(),
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1U,
+    };
     for (int i = 0; i < m_product->m_bufferingType; ++i)
     {
         VkResult res =
@@ -191,9 +200,13 @@ std::unique_ptr<Renderer> RendererBuilder::build()
 
     // synchronization
 
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    VkFenceCreateInfo fenceCreateInfo = {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                                         .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    };
+    VkFenceCreateInfo fenceCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    };
     for (int i = 0; i < m_product->m_bufferingType; ++i)
     {
         VkResult res = vkCreateSemaphore(deviceHandle, &semaphoreCreateInfo, nullptr,

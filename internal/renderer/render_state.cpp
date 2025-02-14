@@ -149,12 +149,6 @@ std::unique_ptr<RenderStateABC> MeshRenderStateBuilder::build()
     return result;
 }
 
-void RenderStateDirector::createUniformAndSamplerRenderStateBuilder(RenderStateBuilderI &builder)
-{
-    builder.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    builder.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-}
-
 void MeshRenderState::recordBackBufferDrawObjectCommands(VkCommandBuffer &commandBuffer)
 {
     auto meshPtr = m_mesh.lock();

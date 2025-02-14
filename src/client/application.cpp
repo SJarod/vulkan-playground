@@ -13,6 +13,7 @@
 #include "renderer/texture.hpp"
 
 #include "engine/camera.hpp"
+#include "engine/uniform.hpp"
 #include "engine/vertex.hpp"
 
 #include "application.hpp"
@@ -83,12 +84,14 @@ void Application::runLoop()
     for (int i = 0; i < objects.size(); ++i)
     {
         MeshRenderStateBuilder mrsb;
+        mrsb.setFrameInFlightCount(m_window->getSwapChain()->getFrameInFlightCount());
+        mrsb.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        mrsb.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         mrsb.setDevice(mainDevice);
         mrsb.setTexture(objects[i]->getTexture());
-        RenderStateDirector rsd;
-        mrsb.setFrameInFlightCount(m_window->getSwapChain()->getFrameInFlightCount());
-        rsd.createUniformAndSamplerRenderStateBuilder(mrsb);
         mrsb.setMesh(objects[i]);
+
+        // material
         PipelineBuilder pb;
         PipelineDirector pd;
         pd.createColorDepthRasterizerBuilder(pb);
@@ -97,6 +100,21 @@ void Application::runLoop()
         pb.addFragmentShaderStage("phong");
         pb.setRenderPass(m_renderer->getRenderPass());
         pb.setExtent(m_window->getSwapChain()->getExtent());
+        UniformDescriptorBuilder udb;
+        udb.addSetLayoutBinding(VkDescriptorSetLayoutBinding{
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        });
+        udb.addSetLayoutBinding(VkDescriptorSetLayoutBinding{
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        });
+        pb.setUniformDescriptorPack(udb.build());
+
         mrsb.setPipeline(pb.build());
 
         m_renderer->registerRenderState(mrsb.build());

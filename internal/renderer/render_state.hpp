@@ -63,12 +63,6 @@ class RenderStateBuilderI
     virtual std::unique_ptr<RenderStateABC> build() = 0;
 };
 
-class RenderStateDirector
-{
-  public:
-    void createUniformAndSamplerRenderStateBuilder(RenderStateBuilderI &builder);
-};
-
 class MeshRenderState : public RenderStateABC
 {
     friend MeshRenderStateBuilder;

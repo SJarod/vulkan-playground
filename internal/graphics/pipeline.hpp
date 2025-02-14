@@ -8,6 +8,7 @@
 class Device;
 class RenderPass;
 class PipelineBuilder;
+class UniformDescriptor;
 
 class Pipeline
 {
@@ -107,6 +108,8 @@ class PipelineBuilder
 
     // descriptor set layout
     std::vector<VkPushConstantRange> m_pushConstantRanges;
+
+    std::shared_ptr<UniformDescriptor> m_uniformDescriptorPack;
 
     const RenderPass *m_renderPass;
 
@@ -274,6 +277,10 @@ class PipelineBuilder
         m_blendConstants[1] = b;
         m_blendConstants[2] = c;
         m_blendConstants[3] = d;
+    }
+    void setUniformDescriptorPack(std::shared_ptr<UniformDescriptor> desc)
+    {
+        m_uniformDescriptorPack = desc;
     }
     void setRenderPass(const RenderPass *a)
     {

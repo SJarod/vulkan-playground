@@ -59,25 +59,3 @@ class UniformDescriptorBuilder
         return result;
     }
 };
-
-class UniformDescriptorDirector
-{
-  public:
-    void createMVPAndTextureBuilder(UniformDescriptorBuilder &builder)
-    {
-        builder.addSetLayoutBinding(VkDescriptorSetLayoutBinding{
-            .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .pImmutableSamplers = nullptr,
-        });
-        builder.addSetLayoutBinding(VkDescriptorSetLayoutBinding{
-            .binding = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pImmutableSamplers = nullptr,
-        });
-    }
-};
