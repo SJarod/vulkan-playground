@@ -35,25 +35,9 @@ Renderer::~Renderer()
     m_renderPass.reset();
 }
 
-void Renderer::registerRenderState(const std::shared_ptr<Mesh> mesh)
+void Renderer::registerRenderState(std::shared_ptr<RenderStateABC> renderState)
 {
-    MeshRenderStateBuilder mrsb;
-    mrsb.setDevice(m_device);
-    mrsb.setTexture(mesh->getTexture());
-    RenderStateDirector rsd;
-    mrsb.setFrameInFlightCount(m_swapchain->getFrameInFlightCount());
-    rsd.createUniformAndSamplerRenderStateBuilder(mrsb);
-    mrsb.setMesh(mesh);
-    PipelineBuilder pb;
-    PipelineDirector pd;
-    pd.createColorDepthRasterizerBuilder(pb);
-    pb.setDevice(m_device);
-    pb.addVertexShaderStage("phong");
-    pb.addFragmentShaderStage("phong");
-    pb.setRenderPass(m_renderPass.get());
-    pb.setExtent(m_swapchain->getExtent());
-    mrsb.setPipeline(pb.build());
-    m_renderStates.emplace_back(mrsb.build());
+    m_renderStates.emplace_back(renderState);
 }
 
 uint32_t Renderer::acquireBackBuffer()

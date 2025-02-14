@@ -2,16 +2,18 @@
 
 #include "graphics/context.hpp"
 #include "graphics/device.hpp"
-#include "renderer/renderer.hpp"
+#include "graphics/pipeline.hpp"
+
 #include "wsi/window.hpp"
 
-#include "engine/vertex.hpp"
-
 #include "renderer/mesh.hpp"
+#include "renderer/render_state.hpp"
+#include "renderer/renderer.hpp"
 #include "renderer/scene.hpp"
 #include "renderer/texture.hpp"
 
 #include "engine/camera.hpp"
+#include "engine/vertex.hpp"
 
 #include "application.hpp"
 
@@ -80,7 +82,24 @@ void Application::runLoop()
     auto objects = m_scene->getObjects();
     for (int i = 0; i < objects.size(); ++i)
     {
-        m_renderer->registerRenderState(objects[i]);
+        MeshRenderStateBuilder mrsb;
+        mrsb.setDevice(mainDevice);
+        mrsb.setTexture(objects[i]->getTexture());
+        RenderStateDirector rsd;
+        mrsb.setFrameInFlightCount(m_window->getSwapChain()->getFrameInFlightCount());
+        rsd.createUniformAndSamplerRenderStateBuilder(mrsb);
+        mrsb.setMesh(objects[i]);
+        PipelineBuilder pb;
+        PipelineDirector pd;
+        pd.createColorDepthRasterizerBuilder(pb);
+        pb.setDevice(mainDevice);
+        pb.addVertexShaderStage("phong");
+        pb.addFragmentShaderStage("phong");
+        pb.setRenderPass(m_renderer->getRenderPass());
+        pb.setExtent(m_window->getSwapChain()->getExtent());
+        mrsb.setPipeline(pb.build());
+
+        m_renderer->registerRenderState(mrsb.build());
     }
 
     Camera camera;

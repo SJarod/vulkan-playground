@@ -51,7 +51,7 @@ class Renderer
     Renderer(Renderer &&) = delete;
     Renderer &operator=(Renderer &&) = delete;
 
-    void registerRenderState(const std::shared_ptr<Mesh> mesh);
+    void registerRenderState(std::shared_ptr<RenderStateABC> renderState);
 
     uint32_t acquireBackBuffer();
 
@@ -61,6 +61,12 @@ class Renderer
     void presentBackBuffer(uint32_t imageIndex);
 
     void swapBuffers();
+
+  public:
+    [[nodiscard]] const RenderPass *getRenderPass() const
+    {
+        return m_renderPass.get();
+    }
 };
 
 class RendererBuilder

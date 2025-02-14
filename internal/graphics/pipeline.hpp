@@ -108,7 +108,7 @@ class PipelineBuilder
     // descriptor set layout
     std::vector<VkPushConstantRange> m_pushConstantRanges;
 
-    RenderPass *m_renderPass;
+    const RenderPass *m_renderPass;
 
     void restart();
 
@@ -275,7 +275,7 @@ class PipelineBuilder
         m_blendConstants[2] = c;
         m_blendConstants[3] = d;
     }
-    void setRenderPass(RenderPass *a)
+    void setRenderPass(const RenderPass *a)
     {
         m_renderPass = a;
     }
