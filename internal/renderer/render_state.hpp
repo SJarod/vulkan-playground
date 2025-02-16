@@ -12,25 +12,48 @@ class Camera;
 class Mesh;
 class MeshRenderStateBuilder;
 
+class UniformBlock
+{
+  class MVP
+  {
+    public:
+      glm::mat4 model;
+      glm::mat4 view;
+      glm::mat4 proj;
+  };
+
+  struct LightT
+  {
+      glm::vec3 color;
+      float intensity;
+  };
+
+  struct DirectionalLight : public LightT
+  {
+      glm::vec3 direction;
+  };
+
+  struct PointLightT : public LightT
+  {
+      glm::vec3 position;
+      glm::vec3 attenuation;
+  };
+
+  VkDescriptorPool m_descriptorPool;
+  std::vector<VkDescriptorSet> m_descriptorSets;
+  std::vector<std::unique_ptr<Buffer>> m_uniformBuffers;
+  std::vector<void *> m_uniformBuffersMapped;
+};
+
 class RenderStateABC
 {
   protected:
-    class MVP
-    {
-      public:
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
 
     std::weak_ptr<Device> m_device;
 
     std::shared_ptr<Pipeline> m_pipeline;
 
-    VkDescriptorPool m_descriptorPool;
-    std::vector<VkDescriptorSet> m_descriptorSets;
-    std::vector<std::unique_ptr<Buffer>> m_uniformBuffers;
-    std::vector<void *> m_uniformBuffersMapped;
+    std::unique_ptr<UniformBlock> m_uniformBlock;
 
     RenderStateABC() = default;
 
