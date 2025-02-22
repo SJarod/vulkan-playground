@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+// TODO : implement Dear ImGui in a new render phase
+
 class Mesh;
 
 class Scene
