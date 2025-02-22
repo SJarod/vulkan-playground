@@ -22,6 +22,8 @@ class UniformBlock
       glm::mat4 proj;
   };
 
+  // TODO : move uniform block in RenderPhase class (or in pipeline ?)
+
   struct LightT
   {
       glm::vec3 color;
